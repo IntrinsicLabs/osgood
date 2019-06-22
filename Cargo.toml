@@ -1,6 +1,6 @@
 [package]
 name = "osgood"
-version = "0.1.0-alpha1"
+version = "0.1.0"
 authors = ["Intrinsic <hello@intrinsic.com>"]
 edition = "2018"
 build = "build.rs"
