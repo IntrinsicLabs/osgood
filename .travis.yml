@@ -25,6 +25,10 @@ script:
   - pushd js && npm install && popd
   - cargo test
 
+before_deploy:
+  - cargo build --release
+  - zip -j osgood-$TRAVIS_OS_NAME-$TRAVIS_TAG.zip target/release/osgood
+
 deploy:
   provider: releases
   api_key:
