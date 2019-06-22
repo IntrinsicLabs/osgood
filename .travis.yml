@@ -24,3 +24,12 @@ script:
   - scripts/install-v8
   - pushd js && npm install && popd
   - cargo test
+
+deploy:
+  provider: releases
+  api_key:
+    secure: YC1y83rWoiNOyRSzXZIjDKU4xkzMhe8XAy/fy2plEtIKF2JaoMGVzoUCBJF/7ahnEi5VCXCAvBx9gsG8TKUomG7LVRLaMusKGyCIioogWWvz7DQQH8BlVKQUV1nlbc9RcJqBSV4qatyDVpgCNgQlEFRWdeoxD8sAcxWOPhTMfMAXV5/JzReNCFn/oL2EWWKC8fKFkEKv5IyknZLt7rtDzzkz7/X0TW7YGNZSXkV2l2Nzf2gUzsweDVLhWvCWKzT56uQdOYCZPHonoNMqv95aEZQv1QUEURQSbfk2lGijG97yE09veD3yXfl287YZlHOLQsEnfHTCjo0pVdxviZwrYxKwopvKn4JlLIzr6V1hsblvmiD0sA4odMzcDItyYmzx343AmF82ziYgvVl17O+y8GWQaOnxbbmAjCeL4EoiOV8doOAz8IhIgvzoLkYddj+GnAniWQA/2LYCddhm/HvcVn3/8Kww8+jjMhxhgFOuOLvjMWIN94zmpM+KzayL7Ge7H4wkX0mjT1Riv5oDaGoe83Hm0qIfRJBrNhhLMc3bqxHXcFqfkKPObTABdevU7BDqzI6LucjVLwGhsRhWyCH4h/tMzhqDknZc7MKr3B2DPbvlW5x0DH02ppUX2V4uJ3aEO+Oq4DpGnMtOImpSK5CWhZDl1mX6IqITp7SKFs4bnLk=
+  file: osgood-$TRAVIS_OS_NAME-$TRAVIS_TAG.zip
+  skip_cleanup: true
+  on:
+    tags: true

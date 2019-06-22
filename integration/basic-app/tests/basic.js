@@ -112,7 +112,7 @@ test(async function applicationFormurlencode() {
   const [res, body] = await request(PORT, '/urlencode');
   assert.strictEqual(res.statusCode, 200);
   assert.ok(res.headers['content-type'].startsWith('application/json'));
-  assert.strictEqual(res.headers['content-length'], '214');
+  assert.strictEqual(res.headers['content-length'], '207');
   const json = JSON.parse(body.toString());
   assert.deepStrictEqual({"foo1":"bar1","foo2":["bar2", "bar3"]}, json.fields);
   assert.deepStrictEqual('application/x-www-form-urlencoded', json.headers['content-type']);
