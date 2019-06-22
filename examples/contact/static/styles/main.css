@@ -1,0 +1,11 @@
+body {
+  background-color: #222;
+  color: #ddd;
+  font-family: monospace;
+}
+.success {
+  color: #22dd22;
+}
+.fail {
+  color: #dd2222;
+}

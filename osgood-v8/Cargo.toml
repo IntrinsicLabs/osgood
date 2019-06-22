@@ -1,0 +1,12 @@
+[package]
+name = "osgood-v8"
+version = "0.1.0"
+authors = ["Bryan English <bengl@intrinsic.com>"]
+edition = "2018"
+
+[dependencies]
+
+[build-dependencies]
+bindgen = "0.42.2"
+cc = "1.0.35"
+git2 = "0.8.0"

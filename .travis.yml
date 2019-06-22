@@ -1,0 +1,26 @@
+language: rust
+rust: stable
+
+os:
+  - linux
+  - osx
+
+env:
+  - CUSTOM_V8=$HOME/v8
+
+addons:
+  apt:
+    packages:
+      libc++-dev
+      clang
+      libclang-dev
+      libssl-dev
+
+before_script:
+  - rustup component add rustfmt
+  - nvm install 12
+
+script:
+  - scripts/install-v8
+  - pushd js && npm install && popd
+  - cargo test

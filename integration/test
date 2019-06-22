@@ -1,0 +1,54 @@
+#!/usr/bin/env node
+'use strict';
+
+const path = require('path');
+const { spawn } = require('child_process');
+const { runTests } = require('./common.js');
+
+// test files
+require('./basic-app/tests/basic.js');
+require('./basic-app/tests/error-cases.js');
+require('./static/tests/clean-url.js');
+require('./static/tests/rename-index.js');
+require('./static/tests/no-index.js');
+require('./static/tests/clean-url-no-index.js');
+
+// app files
+const apps = {
+  './basic-app/app.js': undefined,
+  './static/app-static.js': undefined,
+  './static/app-static-two.js': undefined,
+  './static/app-static-three.js': undefined,
+  './static/app-static-four.js': undefined,
+};
+
+process.chdir(__dirname);
+
+const target = process.argv[2] || 'debug';
+
+const osgoodProcesses = [];
+
+const server = spawn('./server/node-test-server.js', {
+  stdio: 'pipe'
+});
+
+for (let file in apps) {
+  apps[file] = spawn(path.join(__dirname, '..', 'target', target, 'osgood'), [file], {
+    stdio: 'pipe'
+  });
+}
+
+process.on('exit', () => {
+  for (let file in apps) {
+    apps[file].kill();
+  }
+  server.kill();
+});
+
+setTimeout(async () => {
+  await runTests();
+  for (let file in apps) {
+    apps[file].kill();
+  }
+  server.kill();
+}, 500);

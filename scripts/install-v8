@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+V8_VERSION=$(cat osgood-v8/v8-version.txt)
+OS_STR=linux && [ "$(uname)" == "Darwin" ] && OS_STR=osx
+PREBUILT_V8_ZIP=prebuilt-v8-$OS_STR-$V8_VERSION.zip
+RELEASES_URL=https://github.com/IntrinsicLabs/prebuilt-v8-monolith/releases/download
+
+cd $(dirname $CUSTOM_V8)
+curl -L $RELEASES_URL/$V8_VERSION/$PREBUILT_V8_ZIP > $PREBUILT_V8_ZIP
+unzip -q $PREBUILT_V8_ZIP

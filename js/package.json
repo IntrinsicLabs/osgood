@@ -1,0 +1,21 @@
+{
+  "name": "osgood",
+  "version": "1.0.0",
+  "description": "Server-side Service Workers",
+  "main": "bootstrap.js",
+  "scripts": {
+    "install": "mkdir -p vendor && cd vendor && git clone https://github.com/whatwg/streams",
+    "postinstall": "webpack",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Intrinsic <hello@intrinsic.com>",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "webpack": "^4.29.6",
+    "webpack-cli": "^3.2.3",
+    "whatwg-url": "^7.0.0"
+  },
+  "dependencies": {
+    "fast-text-encoding": "^1.0.0"
+  }
+}

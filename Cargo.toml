@@ -1,0 +1,32 @@
+[package]
+name = "osgood"
+version = "0.1.0-alpha1"
+authors = ["Intrinsic <hello@intrinsic.com>"]
+edition = "2018"
+build = "build.rs"
+
+[build-dependencies]
+phf_codegen = "0.7.24"
+
+[dependencies]
+ansi_term = "0.11.0"
+clap = "2.33.0"
+futures = "0.1.25"
+glob = "0.3.0"
+hyper = "0.12"
+hyper-tls = "0.3.2"
+hyper-staticfile = "0.3.1"
+mime_guess = "1.8.7"
+lazy_static = "1.3.0"
+libc = "0.2.51"
+log = "0.4.6"
+path-clean = "0.1.0"
+phf = "0.7.24"
+pretty_env_logger = "0.3.0"
+tokio = "0.1.18"
+url = "1.7.2"
+osgood-v8 = { path = "osgood-v8" }
+osgood-v8-macros = { path = "osgood-v8-macros" }
+
+[workspace]
+members = ["osgood-v8", "osgood-v8-macros"]

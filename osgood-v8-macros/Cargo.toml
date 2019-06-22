@@ -1,0 +1,16 @@
+[package]
+name = "osgood-v8-macros"
+version = "0.1.0"
+authors = ["Bryan English <bengl@intrinsic.com>"]
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+quote = "0.6.12"
+osgood-v8 = { path = "../osgood-v8" }
+
+[dependencies.syn]
+version = "0.15.32"
+features = ["full", "extra-traits"]
