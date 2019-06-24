@@ -34,7 +34,7 @@ fn build_v8() -> PathBuf {
 
     // Checkout the correct v8 version
     let status = Command::new("git")
-        .args(&["checkout", include_str!("v8-version.txt")])
+        .args(&["checkout", include_str!("v8-version.txt").trim()])
         .current_dir(v8_repo_path.clone())
         .status()
         .expect("Failed to checkout correct v8 version");
