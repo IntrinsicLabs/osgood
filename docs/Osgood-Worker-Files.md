@@ -1,5 +1,5 @@
 Osgood Worker Files are given a different set of globals than the application
-file. For example there is no `app` global available.
+file. For example, there is no `app` global available.
 
 Each worker file will run in a separate thread from the others, as well as a
 separate thread from the application file. This means that no global state can
@@ -61,7 +61,7 @@ returned which isn't an instance of Response.
 
 #### String
 
-If a string is returned then the content type will be set to `text/plain`. If
+If a string is returned, then the content type will be set to `text/plain`. If
 you plan on returning a different value, such as HTML, you'll need to make use
 of a Response object and set the headers manually. If you want to return
 another primitive value, like a `boolean` or a `number`, then you'll need to
