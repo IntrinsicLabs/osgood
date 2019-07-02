@@ -6,8 +6,10 @@ First, visit the [Releases](https://github.com/IntrinsicLabs/osgood/releases)
 page. There you will find different builds available for two of the two major
 platforms. From there you can download a binary and run it.
 
-- [Osgood for MacOS](TODO)
-- [Osgood for Linux](TODO)
+- [Osgood for
+  MacOS](https://github.com/IntrinsicLabs/osgood/releases/download/0.1.0/osgood-osx-0.1.0.zip)
+- [Osgood for
+  Linux](https://github.com/IntrinsicLabs/osgood/releases/download/0.1.0/osgood-linux-0.1.0.zip)
 
 ## npm
 

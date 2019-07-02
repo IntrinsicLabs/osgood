@@ -1,5 +1,5 @@
 An Osgood Application file has access to a global object called `app`. By
-setting various properties on this object we're able to configure the behavior
+setting various properties on this object, we're able to configure the behavior
 of our application.
 
 ## App Configuration
@@ -9,7 +9,7 @@ to `0.0.0.0`, which means all interfaces. You can also set it to `127.0.0.1`,
 which means only requests from the local machine will work. You can also set it
 to the IP address of a hardware interface on your machine.
 
-`app.port`: This is the port which Osgood will listen on. By default it listens
+`app.port`: This is the port which Osgood will listen on. By default, it listens
 on `8080`.
 
 ```javascript
@@ -20,7 +20,7 @@ app.host = 'localhost';
 
 ## Routing
 
-After the application basics have been configured we can go ahead and configure
+After the application basics have been configured, we can go ahead and configure
 the different routes used in our application. This can be done by calling
 methods on the `app` objects. Each of these methods have the same signature:
 
