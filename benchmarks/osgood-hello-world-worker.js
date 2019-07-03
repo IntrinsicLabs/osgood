@@ -1,3 +1,2 @@
-export default (_request, _context) => {
-  return "Hello, World!";
-};
+console.log('Starting worker');
+export default () => 'Hello, World!';

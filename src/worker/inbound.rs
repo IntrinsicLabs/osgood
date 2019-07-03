@@ -37,6 +37,7 @@ pub fn handle_inbound((req, tx): Message, origin: &str) -> impl Future<Item = ()
 
     req.into_body()
         .for_each(move |chunk| {
+            let context = get_context();
             handle_scope!({
                 let chunk = std::string::String::from_utf8(chunk.to_vec()).unwrap();
                 let null = Isolate::null();
@@ -46,6 +47,7 @@ pub fn handle_inbound((req, tx): Message, origin: &str) -> impl Future<Item = ()
             future::ok(())
         })
         .and_then(move |_| {
+            let context = get_context();
             handle_scope!({
                 let null = Isolate::null();
                 let mut cb = body_handler.into_local();

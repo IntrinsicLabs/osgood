@@ -18,6 +18,7 @@ use hyper::service::service_fn;
 use hyper::{Body, Request, Response, Server, StatusCode};
 
 use hyper_staticfile;
+use num_cpus;
 use tokio;
 
 use std::cell::RefCell;
@@ -72,7 +73,12 @@ fn main() {
         let origin = (&config.origin.origin).clone();
         let port = addr.port();
         let static_routes = config.origin.static_routes.clone();
-        let workers = Arc::new(make_workers(config).unwrap());
+        let num_instances = if options.is_present("autoscale") {
+            num_cpus::get()
+        } else {
+            1
+        };
+        let workers = Arc::new(make_workers(config, num_instances).unwrap());
 
         // Define the HTTP service
         let service = move || {
@@ -185,7 +191,7 @@ fn main() {
                                             directory_path.join(clean_path.to_owned() + ".html");
                                         if path.ends_with('/') && try_path.is_file() {
                                             is_redirect = Some(
-                                                original_path.trim_end_matches("/").to_string(),
+                                                original_path.trim_end_matches('/').to_string(),
                                             );
                                             println!("{:?}", is_redirect);
                                         }
@@ -199,7 +205,7 @@ fn main() {
                                         let clean_path = path.trim_start_matches('/');
                                         let try_path = directory_path.join(clean_path);
                                         if path.is_empty() || !try_path.is_file() {
-                                            let body = format!("404\n");
+                                            let body = "404\n".to_string();
                                             let resp = Response::builder()
                                                 .status(StatusCode::NOT_FOUND)
                                                 .body(body.into())
@@ -258,33 +264,16 @@ fn main() {
                     }
                 };
 
-                let sender = worker.sender.clone();
-
                 // Create a one-shot, reverse channel so that the worker thread can send its response
                 let (tx, rx) = oneshot::channel();
 
-                // Send the request to the service worker thread, await the response, and send that to
-                // the client
-                Box::new(sender.send((req, tx)).then(|_| {
+                // Send the request to the worker thread
+                Box::new(worker.sender.clone().send((req, tx)).then(|_| {
                     rx.then(move |res: Result<ResponseResult, oneshot::Canceled>| {
-                        if let Ok(res) = res {
-                            if let Ok(res) = res {
-                                future::ok(res)
-                            } else {
-                                future::ok(
-                                    Response::builder()
-                                        .status(StatusCode::SERVICE_UNAVAILABLE)
-                                        .body(format!("route not available: {}\n", route).into())
-                                        .unwrap(),
-                                )
-                            }
+                        if let Ok(Ok(res)) = res {
+                            future::ok(res)
                         } else {
-                            future::ok(
-                                Response::builder()
-                                    .status(StatusCode::SERVICE_UNAVAILABLE)
-                                    .body(format!("route not available: {}\n", route).into())
-                                    .unwrap(),
-                            )
+                            future::ok(route_not_available(&route))
                         }
                     })
                 }))
@@ -300,12 +289,19 @@ fn main() {
             .serve(service)
             .map_err(|e| log_osgood_error!("Error: {}", e))
     }));
-    //tokio::run(server);
 
     osgood_v8::wrapper::platform_dispose();
 }
 
-fn make_workers(config: Config) -> Result<Vec<Worker>, std::io::Error> {
+#[inline]
+fn route_not_available(route: &str) -> Response<Body> {
+    Response::builder()
+        .status(StatusCode::SERVICE_UNAVAILABLE)
+        .body(format!("route not available: {}\n", route).into())
+        .unwrap()
+}
+
+fn make_workers(config: Config, num_instances: usize) -> Result<Vec<Worker>, std::io::Error> {
     let mut workers = Vec::new();
     let origin = config.origin;
     for route in origin.routes {
@@ -318,6 +314,7 @@ fn make_workers(config: Config) -> Result<Vec<Worker>, std::io::Error> {
                 &route.worker_file,
                 route.policies,
                 &route.raw,
+                num_instances,
             ));
         } else {
             log_osgood_error!("Could not find worker file: {}", &route.worker_file);
@@ -347,6 +344,11 @@ fn parse_args<'a>() -> (string::String, clap::ArgMatches<'a>) {
                 .required(true)
                 .help("An Osgood Application JavaScript file")
                 .index(1),
+        )
+        .arg(
+            clap::Arg::with_name("autoscale")
+                .long("experimental-autoscale")
+                .help("Allow Osgood to scale up each worker instance to maximize thread usage"),
         )
         .after_help(
             "In addition, you can pass V8 flags prefixing them with \

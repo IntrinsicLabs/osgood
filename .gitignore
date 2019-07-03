@@ -1,6 +1,6 @@
-js/dist/
-js/node_modules/
-tests/integration/server/node_modules/
-js/vendor/
-target/
-bin/
+js/dist
+js/node_modules
+tests/integration/server/node_modules
+js/vendor
+target
+bin
