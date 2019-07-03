@@ -11,7 +11,10 @@ env:
 addons:
   apt:
     packages:
+      build-essential
+      pkg-config
       libc++-dev
+      libc++abi-dev
       clang
       libclang-dev
       libssl-dev

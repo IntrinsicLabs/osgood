@@ -4,7 +4,7 @@
   "description": "Server-side Service Workers",
   "main": "bootstrap.js",
   "scripts": {
-    "install": "mkdir -p vendor && cd vendor && git clone https://github.com/whatwg/streams",
+    "install": "mkdir -p vendor && cd vendor && test -d streams || git clone https://github.com/whatwg/streams",
     "postinstall": "webpack",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
