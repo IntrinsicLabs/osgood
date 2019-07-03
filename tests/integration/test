@@ -51,4 +51,4 @@ setTimeout(async () => {
     apps[file].kill();
   }
   server.kill();
-}, 500);
+}, 2000);

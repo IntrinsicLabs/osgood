@@ -18,6 +18,7 @@ use super::osgood_v8::V8;
 use super::ResponseResult;
 
 use tokio::runtime::current_thread;
+use tokio_threadpool;
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -37,10 +38,10 @@ mod policies;
 mod timers;
 
 /// The size of the MPSC channel buffer (in addition to the number of channel senders).
-static BUFFER_SIZE: usize = 128;
+static BUFFER_SIZE: usize = 1024;
 
 type ResponseResultSender = oneshot::Sender<ResponseResult>;
-type Message = (Request<Body>, ResponseResultSender);
+pub type Message = (Request<Body>, ResponseResultSender);
 
 static PREAMBLE: &str = include_str!("../js/dist/preamble.js");
 
@@ -52,8 +53,21 @@ thread_local! {
     static MODULE_CACHE: RefCell<HashMap<PathBuf, Persistent<V8::Module>>> = RefCell::new(HashMap::new());
 }
 
+thread_local! {
+    static WORKER_ID: RefCell<usize> = RefCell::new(0);
+}
+
+thread_local! {
+    static ISOLATE_SPAWN_HANDLE: RefCell<Option<current_thread::Handle>> = RefCell::new(None);
+}
+
+thread_local! {
+    static TEARDOWN_SENDER: RefCell<Option<mpsc::Sender<()>>> = RefCell::new(None);
+}
+
 /// A single instance of a worker.
 pub struct Worker {
+    pub id: usize,
     pub sender: mpsc::Sender<Message>,
     origin: std::string::String,
     pattern: Pattern,
@@ -70,106 +84,173 @@ impl Worker {
         handler_filename: &str,
         policies: Vec<Policy>,
         route: &str,
+        num_instances: usize,
     ) -> Worker {
         // TODO: Once we add support for multiple origins, we should add origin to the name
         let name = format!("{} {}", method, pattern);
         let (inbound_tx, inbound_rx) = mpsc::channel(BUFFER_SIZE); // for inbounds
         let (outbound_tx, outbound_rx) = mpsc::channel(BUFFER_SIZE); // for outbounds
         let handler = handler.to_owned();
-        let name_str = name.to_string();
         let origin_str = origin.to_owned();
         let handler_filename = handler_filename.to_owned();
         let route = route.to_owned();
 
-        // Each Isolate runs in a separate thread; communication occurs via the MPSC channel.
-        std::thread::spawn(move || {
-            super::NAME.with(|n| {
-                *n.borrow_mut() = name_str;
-            });
-            policies::set_policies(policies);
-            let task = future::lazy(move || -> Box<Future<Item = (), Error = ()>> {
-                let isolate = Isolate::new();
-                isolate.enter();
-                set_module_map(HashMap::new());
+        let worker_isolate_pool = tokio_threadpool::Builder::new()
+            .after_start(move || {
+                // Copy everything as needed into this thread
+                let name = name.clone();
+                let handler = handler.clone();
+                let handler_filename = handler_filename.clone();
+                let route = route.clone();
+                let outbound_tx = outbound_tx.clone();
+                let policies = policies.clone();
 
-                let scope = HandleScope::new();
-                let mut context = Context::new();
-                context.enter();
-                set_context(context);
-                set_fetch_tx(outbound_tx);
+                // Channel for sending/receiving the current_thread handle from the sidecar thread
+                let (handle_tx, handle_rx) = std::sync::mpsc::channel::<current_thread::Handle>();
 
-                make_globals(context, &route);
-                run_module(context, PREAMBLE, "preamble.js", None)
-                    .expect("Preamble failed to execute");
-                if let Err(err) = internal::run_internal_module(context, "internal:index.js") {
-                    panic!("Bootstrap failed to execute: {}", err);
-                }
-                match run_module(
-                    context,
-                    &handler,
-                    &handler_filename,
-                    Some(&handler_filename),
-                ) {
-                    Err(errstr) => {
-                        log_worker_error!("Worker failed to start due to thrown error:");
-                        log_worker_error!("{}", errstr);
-                        teardown(isolate, &mut context, scope);
-                        Box::new(future::ok(()))
-                    }
-                    Ok(module) => {
-                        log_info!("Worker started");
+                // Channel for sending/receiving isolate teardown signals
+                let (teardown_tx, teardown_rx) = mpsc::channel::<()>(0);
 
-                        let mut exports = module.get_exports(context).unwrap();
+                TEARDOWN_SENDER.with(|s| {
+                    *s.borrow_mut() = Some(teardown_tx.clone());
+                });
 
-                        let default_export = exports.get(context, "default");
-                        if default_export.is_function() {
-                            let mut global = context.global();
-                            global.set_private(
-                                context,
-                                "worker_handler",
-                                default_export.to_function(),
-                            );
-                        } else {
-                            log_worker_warning!("Worker did not export a default handler");
+                // Each Tokio thread has its own complementary, possibly-blocking isolate instance
+                std::thread::spawn(move || {
+                    super::NAME.with(|n| {
+                        *n.borrow_mut() = name.to_string();
+                    });
+                    policies::set_policies(policies);
+                    let mut runtime = current_thread::Runtime::new().unwrap();
+
+                    let isolate = Isolate::new();
+                    isolate.enter();
+                    set_module_map(HashMap::new());
+
+                    handle_scope!({
+                        let mut context = Context::new();
+                        context.enter();
+                        set_context(context);
+                        set_fetch_tx(outbound_tx);
+
+                        make_globals(context, &route);
+                        run_module(context, PREAMBLE, "preamble.js", None)
+                            .expect("Preamble failed to execute");
+                        internal::run_internal_module(context, "internal:index.js")
+                            .expect("Bootstrap failed to execute");
+
+                        match run_module(
+                            context,
+                            &handler,
+                            &handler_filename,
+                            Some(&handler_filename),
+                        ) {
+                            Err(errstr) => {
+                                log_worker_error!("Worker failed to start due to thrown error:");
+                                log_worker_error!("{}", errstr);
+                                teardown_tx.clone().try_send(()).unwrap();
+                            }
+                            Ok(module) => {
+                                log_info!("Worker started");
+
+                                let mut exports = module.get_exports(context).unwrap();
+
+                                let default_export = exports.get(context, "default");
+                                if default_export.is_function() {
+                                    let mut global = context.global();
+                                    global.set_private(
+                                        context,
+                                        "worker_handler",
+                                        default_export.to_function(),
+                                    );
+                                } else {
+                                    log_worker_warning!("Worker did not export a default handler");
+                                }
+
+                                handle_tx.send(runtime.handle()).unwrap();
+                            }
                         }
+                        runtime.block_on(teardown_rx.into_future()).unwrap();
+                        runtime.run().unwrap();
 
-                        Box::new(
-                            inbound_rx
-                                .for_each(move |message: Message| {
-                                    log_trace!("Inbound fetch");
-                                    current_thread::spawn(inbound::handle_inbound(
-                                        message,
-                                        &origin_str,
-                                    ));
-                                    future::ok(())
-                                })
-                                .then(move |_| {
-                                    log_trace!("Tearing down worker");
-                                    teardown(isolate, &mut context, scope);
-                                    future::ok(())
-                                }),
-                        )
+                        context.exit();
+                        CONTEXT.with(|c| {
+                            *c.borrow_mut() = None;
+                        });
+                    });
+
+                    log_trace!("Tearing down worker");
+                    isolate.exit();
+                    isolate.dispose();
+                });
+
+                ISOLATE_SPAWN_HANDLE.with(|h| {
+                    *h.borrow_mut() = match handle_rx.recv() {
+                        Ok(handle) => Some(handle),
+                        _ => None,
                     }
-                }
+                });
+            })
+            .name_prefix(format!("{}-{}-", method, pattern))
+            .pool_size(num_instances)
+            .build();
+
+        let _ = worker_isolate_pool
+            .spawn_handle(future::lazy(move || {
+                ISOLATE_SPAWN_HANDLE.with(|h| {
+                    let handle = h.borrow_mut().clone();
+
+                    handle
+                        .and_then(|h| h.status().ok())
+                        .ok_or(Err::<(), ()>(()))
+                })
+            }))
+            .wait()
+            .and_then(|_| {
+                // Link up the inbound connection queue to the worker threadpool
+                tokio::spawn(future::lazy(move || {
+                    inbound_rx.for_each(move |message: Message| {
+                        log_trace!("Inbound fetch");
+                        let origin_str = origin_str.clone();
+                        worker_isolate_pool.spawn(future::lazy(move || {
+                            ISOLATE_SPAWN_HANDLE
+                                .with(|h| {
+                                    let handle = h.borrow_mut().clone().unwrap();
+                                    handle.spawn(process_incoming_message(message, &origin_str))
+                                })
+                                .unwrap();
+                            future::ok(())
+                        }));
+                        future::ok(())
+                    })
+                }));
+
+                // Link up the outbound connection queue to the hyper threadpool
+                tokio::spawn(future::lazy(move || {
+                    outbound_rx
+                        .for_each(move |(req, tx): Message| {
+                            log_trace!("Outbound fetch");
+                            if req.uri().scheme_str().unwrap() == "https" {
+                                hyper::rt::spawn(fetch::fetch_https_outbound(req, tx));
+                            } else {
+                                hyper::rt::spawn(fetch::fetch_http_outbound(req, tx));
+                            }
+                            future::ok(())
+                        })
+                        .map_err(|e| error!("{:?}", e))
+                }));
+
+                Ok(())
             });
-            current_thread::run(task);
+
+        let id = WORKER_ID.with(|i| {
+            let id = *i.borrow();
+            *i.borrow_mut() = id + 1;
+            id
         });
 
-        tokio::spawn(future::lazy(move || {
-            outbound_rx
-                .for_each(move |(req, tx): Message| {
-                    log_trace!("Outbound fetch");
-                    if req.uri().scheme_str().unwrap() == "https" {
-                        hyper::rt::spawn(fetch::fetch_https_outbound(req, tx));
-                    } else {
-                        hyper::rt::spawn(fetch::fetch_http_outbound(req, tx));
-                    }
-                    future::ok(())
-                })
-                .map_err(|e| error!("{:?}", e))
-        }));
-
         Worker {
+            id,
             sender: inbound_tx,
             origin: origin.to_string(),
             pattern,
@@ -186,20 +267,6 @@ impl Worker {
     }
 }
 
-fn teardown(isolate: Isolate, context: &mut Local<Context>, scope: HandleScope) {
-    context.exit();
-    CONTEXT.with(|c| {
-        *c.borrow_mut() = None;
-    });
-    isolate_and_scope_teardown(isolate, scope);
-}
-
-fn isolate_and_scope_teardown(isolate: Isolate, scope: HandleScope) {
-    drop(scope);
-    isolate.exit();
-    isolate.dispose();
-}
-
 fn get_context() -> Local<Context> {
     CONTEXT.with(|c| {
         c.borrow_mut()
@@ -214,6 +281,17 @@ fn get_module_map() -> HashMap<i32, std::string::String> {
             .clone()
             .expect("MODULE_MAP should have been set by now")
     })
+}
+
+fn process_incoming_message(
+    message: Message,
+    origin: &str,
+) -> Box<Future<Item = (), Error = ()> + Send> {
+    let origin = origin.to_owned();
+    Box::new(future::lazy(move || {
+        current_thread::spawn(inbound::handle_inbound(message, &origin));
+        future::ok(())
+    }))
 }
 
 fn make_globals(mut context: Local<Context>, route: &str) {

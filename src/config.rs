@@ -8,6 +8,7 @@ use std::path::PathBuf;
 
 static CONFIG_BOOTSTRAP: &str = include_str!("../js/config_bootstrap.js");
 
+#[derive(Clone)]
 pub struct Policy {
     method: std::string::String,
     pattern: Pattern,
