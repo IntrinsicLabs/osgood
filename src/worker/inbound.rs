@@ -1,4 +1,5 @@
 use super::*;
+use hyper::header::HeaderValue;
 
 enum ResponseHolder {
     Resp(body::Sender),
@@ -95,6 +96,14 @@ pub fn call_inbound_req_body_handler(mut context: Local<V8::Context>, args: Vec<
         .get_private(context, "inbound_req_body_handler")
         .to_function()
         .call(context, &null, args);
+}
+
+#[v8_fn]
+pub fn string_response(args: FunctionCallbackInfo) {
+    let req_id = args.get(1).unwrap().to_number().value() as i32;
+    let mut response = Response::new(args.get(0).unwrap().as_rust_string().into());
+    (*response.headers_mut()).insert("Content-Type", HeaderValue::from_str("text/plain").unwrap());
+    send_response!(&req_id, Ok(response));
 }
 
 #[v8_fn]

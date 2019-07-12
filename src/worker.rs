@@ -222,6 +222,7 @@ fn make_globals(mut context: Local<Context>, route: &str) {
     global.set("_route", route);
     global.set_extern_method(context, "_startResponse", inbound::start_response);
     global.set_extern_method(context, "_writeResponse", inbound::write_response);
+    global.set_extern_method(context, "_stringResponse", inbound::string_response);
     global.set_extern_method(context, "_setFetchHandler", fetch::set_fetch_handler);
     global.set_extern_method(context, "_setTimerHandler", timers::set_timer_handler);
     global.set_extern_method(

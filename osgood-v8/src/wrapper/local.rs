@@ -128,6 +128,7 @@ persistent!(
 persistent!(V8::Module, persistent_from_module, persistent_to_module);
 persistent!(V8::Message, persistent_from_message, persistent_to_message);
 each_valuable_type!(V8::Object);
+each_valuable_type!(V8::Map);
 each_valuable_type!(V8::Array);
 each_valuable_type!(V8::String);
 each_valuable_type!(V8::Primitive);
