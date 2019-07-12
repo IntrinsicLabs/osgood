@@ -22,6 +22,7 @@ use tokio;
 
 use std::cell::RefCell;
 use std::path::Path;
+use std::string;
 use std::sync::Arc;
 
 #[macro_export]
@@ -46,18 +47,17 @@ use config::*;
 use worker::Worker;
 
 thread_local! {
-    static NAME: RefCell<std::string::String> = RefCell::new("------".to_string());
+    static NAME: RefCell<string::String> = RefCell::new("------".to_string());
 }
 
 type FutureResponse = Box<Future<Item = Response<Body>, Error = std::io::Error> + Send>;
-type ResponseResult = Result<Response<Body>, std::string::String>;
+type ResponseResult = Result<Response<Body>, string::String>;
 
 fn main() {
-    osgood_v8::wrapper::platform_init();
+    let (v8_flags, options) = parse_args();
+    osgood_v8::wrapper::platform_init(&v8_flags);
 
-    tokio::run(future::lazy(|| {
-        let options = parse_args();
-
+    tokio::run(future::lazy(move || {
         pretty_env_logger::init();
 
         let config_file = options.value_of("APPFILE").unwrap();
@@ -173,7 +173,7 @@ fn main() {
                                     } else if path.ends_with('/') {
                                         path = path + file;
                                     } else if path.is_empty() {
-                                        path = std::string::String::from("/") + file;
+                                        path = string::String::from("/") + file;
                                     }
                                 }
                                 None => {
@@ -327,8 +327,15 @@ fn make_workers(config: Config) -> Result<Vec<Worker>, std::io::Error> {
     Ok(workers)
 }
 
-fn parse_args<'a>() -> clap::ArgMatches<'a> {
-    clap::App::new("osgood")
+fn parse_args<'a>() -> (string::String, clap::ArgMatches<'a>) {
+    let (v8_flags_vec, args): (Vec<string::String>, Vec<string::String>) =
+        std::env::args().partition(|arg| arg.starts_with("--v8-"));
+    let v8_flags_vec: Vec<string::String> = v8_flags_vec
+        .iter()
+        .map(|f| f.replace("--v8-", "--"))
+        .collect();
+    let v8_flags = v8_flags_vec.join(" ");
+    let options = clap::App::new("osgood")
         .version(crate_version!())
         .arg(
             clap::Arg::with_name("APPFILE")
@@ -336,5 +343,10 @@ fn parse_args<'a>() -> clap::ArgMatches<'a> {
                 .help("An Osgood Application JavaScript file")
                 .index(1),
         )
-        .get_matches()
+        .after_help(
+            "In addition, you can pass V8 flags prefixing them with \
+             '--v8-' instead of just '--'. List them with '--v8-help'.",
+        )
+        .get_matches_from(args);
+    (v8_flags, options)
 }
