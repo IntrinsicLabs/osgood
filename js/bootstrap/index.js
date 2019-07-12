@@ -325,6 +325,11 @@
 
   async function handleIncomingReqBody(reqId, body) {
     let writer = writerMap.get(inFlightInbounds[reqId]);
+    if (!writer) {
+      // Response has already been sent, so we don't care about any
+      // more incoming data.
+      return;
+    }
     await writer.ready;
     if (typeof body === 'undefined') {
       await writer.close();
@@ -548,8 +553,10 @@
             this.append(name, value);
           }
         } else {
-          for (const [name, value] of Object.entries(init)) {
-            this.append(name, value);
+          for (const name in init) {
+            if (Object.prototype.hasOwnProperty.call(init, name)) {
+              this.append(name, init[name]);
+            }
           }
         }
       } else {
