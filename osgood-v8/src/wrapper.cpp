@@ -50,10 +50,13 @@ struct CompileJSResult {
   bool is_exception;
 };
 
-void platform_init(const char *argv0) {
+void platform_init(const char *argv0, const char * flags, int flags_len) {
   v8::V8::InitializeICUDefaultLocation(argv0);
   v8::V8::InitializeExternalStartupData(argv0);
   g_platform = v8::platform::NewDefaultPlatform();
+  if (flags_len > 0) {
+    v8::V8::SetFlagsFromString(flags, flags_len);
+  }
   v8::V8::InitializePlatform(g_platform.get());
   v8::V8::Initialize();
 }

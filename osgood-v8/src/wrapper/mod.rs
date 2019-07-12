@@ -2,7 +2,9 @@ use super::osgood;
 use super::V8;
 use std::convert;
 use std::env;
+use std::ffi::CString;
 use std::os::raw::c_char;
+use std::os::raw::c_int;
 
 mod local;
 pub use local::*;
@@ -50,12 +52,31 @@ pub use exception::*;
 /// functions.
 pub const NULL: Option<u16> = None;
 
-pub fn platform_init() {
+pub fn platform_init(v8_flags: &str) {
     let args: Vec<std::string::String> = env::args().collect();
     let name = format!("{}\0", args[0]).as_ptr() as *const c_char;
+    let v8_flags = normalize_v8_flags(v8_flags);
+    let flags_len = v8_flags.len() as c_int;
+    let flags = CString::new(v8_flags).unwrap();
+    let flags = flags.as_ptr() as *const c_char;
     unsafe {
-        osgood::platform_init(name);
+        osgood::platform_init(name, flags, flags_len);
     }
+}
+
+fn normalize_v8_flags(flags: &str) -> std::string::String {
+    flags
+        .split(' ')
+        .filter(|x| !x.is_empty())
+        .map(|x| {
+            if x.starts_with("--") {
+                x.to_owned()
+            } else {
+                "--".to_owned() + x
+            }
+        })
+        .collect::<Vec<std::string::String>>()
+        .join(" ")
 }
 
 pub fn platform_dispose() {
