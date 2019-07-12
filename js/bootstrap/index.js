@@ -5,6 +5,8 @@
   delete self._startResponse;
   const writeResponse = self._writeResponse;
   delete self._writeResponse;
+  const stringResponse = self._stringResponse;
+  delete self._stringResponse;
   const setTimeout = self._setTimeout;
   delete self._setTimeout;
   const setInterval = self._setInterval;
@@ -263,11 +265,7 @@
       response = await fn(request, generateContextObject(url));
       switch (typeof response) {
         case 'string': {
-          const headers = new Headers({
-            'Content-Type': 'text/plain'
-          });
-
-          response = new Response(response, { headers });
+          // handle it in native code
           break;
         }
         case 'object': {
@@ -304,7 +302,9 @@
       response = new Response('', { status: 500 });
     }
 
-    if (response.body) {
+    if (typeof response === 'string') {
+      stringResponse(response, reqId);
+    } else if (response.body) {
       startResponse(response, reqId);
       let stream =
         response.body instanceof TransformStream
