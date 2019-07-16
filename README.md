@@ -9,7 +9,7 @@ attempt to build a platform from the ground up, one which applies the
 Privilege_](https://en.wikipedia.org/wiki/Principle_of_least_privilege) at its
 very core. Osgood requires that policies be written ahead of time describing
 the I/O requirements of an application. If such an operation hasn't been
-whitelisted, it fill fail. Developers familiar with JavaScript development in
+whitelisted, it will fail. Developers familiar with JavaScript development in
 the web browser should feel right at home with the APIs provided in Osgood.
 
 
