@@ -454,15 +454,6 @@
   }
   self.fetch = fetch;
 
-  function defineReadOnly(obj, prop, value) {
-    Reflect.defineProperty(obj, prop, {
-      value,
-      enumerable: true,
-      configurable: true,
-      writable: false
-    });
-  }
-
   function chunkAsArrayBuffer(chunk) {
     if (!(chunk instanceof ArrayBuffer)) {
       if (typeof chunk === 'string') {
@@ -689,54 +680,103 @@
   }
 
   class Response {
-    constructor(body, init = {}) {
-      defineReadOnly(this, 'status', init.status || 200);
-      defineReadOnly(this, 'statusText', init.statusText || 'OK');
-      defineReadOnly(
-        this,
-        'headers',
-        init.headers instanceof Headers
-          ? init.headers
-          : new Headers(init.headers)
-      );
-      if (body instanceof ReadableStream || body instanceof TransformStream) {
-        defineReadOnly(this, 'body', body);
-      } else if (typeof body === 'string') {
-        defineReadOnly(this, '_bodyString', body);
-      } else if (isBufferish(body)) {
-        defineReadOnly(this, 'body', new StringReadable(body));
-      }
-    }
-  }
-  BodyMixin.mixin(Response);
-
-  class Request {
-    #preHeaders; // not yet instantiated
+    #rawHeaders; // not yet instantiated
     #headers; // instantiated
-    constructor(input, init = {}) {
-      // TODO support `input` being a Request
-      defineReadOnly(this, 'url', input);
+    #status;
+    #statusText;
+    #body;
+    #_bodyString;
+    constructor(body, init = {}) {
+      this.#status = init.status || 200;
+      this.#statusText = init.statusText || 'OK';
       if (!(init.headers instanceof Headers)) {
-        this.#preHeaders = init.headers;
+        this.#rawHeaders = init.headers;
       } else {
         this.#headers = init.headers;
       }
-      defineReadOnly(this, 'method', init.method || 'GET');
-
-      if (init.body instanceof ReadableStream || init.body instanceof self.FormData) {
-        defineReadOnly(this, 'body', init.body);
-      } else if (typeof init.body === 'string') {
-        defineReadOnly(this, '_bodyString', init.body);
-      } else if (isBufferish(init.body)) {
-        defineReadOnly(this, 'body', new StringReadable(init.body));
+      if (body instanceof ReadableStream || body instanceof TransformStream) {
+        this.#body = body;
+      } else if (typeof body === 'string') {
+        this.#_bodyString = body;
+      } else if (isBufferish(body)) {
+        this.#body = new StringReadable(body);
       }
     }
 
     get headers() {
       if (!this.#headers) {
-        this.#headers = new Headers(this.#preHeaders);
+        this.#headers = new Headers(this.#rawHeaders);
       }
       return this.#headers;
+    }
+
+    get status() {
+      return this.#status;
+    }
+
+    get statusText() {
+      return this.#statusText;
+    }
+
+    get body() {
+      return this.#body;
+    }
+
+    get _bodyString() {
+      return this.#_bodyString;
+    }
+
+  }
+  BodyMixin.mixin(Response);
+
+  class Request {
+    #rawHeaders; // not yet instantiated
+    #headers; // instantiated
+    #url;
+    #method;
+    #body;
+    #_bodyString;
+    constructor(input, init = {}) {
+      // TODO support `input` being a Request
+      this.#url = input;
+
+      if (!(init.headers instanceof Headers)) {
+        this.#rawHeaders = init.headers;
+      } else {
+        this.#headers = init.headers;
+      }
+      this.#method = init.method || 'GET';
+
+      if (init.body instanceof ReadableStream || init.body instanceof self.FormData) {
+        this.#body = init.body;
+      } else if (typeof init.body === 'string') {
+        this.#_bodyString = init.body;
+      } else if (isBufferish(init.body)) {
+        this.#body = new StringReadable(init.body);
+      }
+    }
+
+    get headers() {
+      if (!this.#headers) {
+        this.#headers = new Headers(this.#rawHeaders);
+      }
+      return this.#headers;
+    }
+
+    get url() {
+      return this.#url;
+    }
+
+    get method() {
+      return this.#method;
+    }
+
+    get body() {
+      return this.#body;
+    }
+
+    get _bodyString() {
+      return this.#_bodyString;
     }
   }
   BodyMixin.mixin(Request);
