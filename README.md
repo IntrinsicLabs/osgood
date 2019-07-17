@@ -15,7 +15,10 @@ the web browser should feel right at home with the APIs provided in Osgood.
 
 ## Documentation
 
-[Osgood Documentation](https://github.com/IntrinsicLabs/osgood/wiki)
+- [Osgood API Docs](https://github.com/IntrinsicLabs/osgood/wiki)
+- [Introducing Osgood (blog)](https://dev.to/tlhunter/introducing-osgood-4k1m)
+- [Hosting a Static Site and Contact Form with Osgood (blog)](https://dev.to/tlhunter/hosting-a-static-site-and-contact-form-with-osgood-5c1g)
+- [Introducing Osgood (presentation)](https://thomashunter.name/presentations/introducing-osgood/#/)
 
 
 ## Hello, World!
@@ -45,16 +48,26 @@ to provide a secure way to build HTTP servers that are fast and simple. Osgood
 handles server routing and configuration for you, allowing you to focus on
 application code.
 
-Osgood gives you fine-grained control over your application's privileged
-operations. It follows the [_Principle of Least
-Privilege_](https://en.wikipedia.org/wiki/Principle_of_least_privilege) by
-prohibiting workers from accessing resources you don't explicitly allow.
+Today we build web applications with general purpose language runtimes. Osgood
+is an experiment that asks the question: "What if we built a runtime
+specifically for web apps? What kind of benefits can we get from being at
+a higher level of abstraction?"
+
+Since the Osgood runtime has intimate knowledge of the routing table we get the
+ability to isolate controllers for free (we refer to these as Workers). The I/O
+performed by the application, as well as policy enforcement, happens in
+Rust-land. Each worker has its own set of permissions.
 
 Here's an example policy:
 
 ```javascript
 policy.outboundHttp.allowGet('https://intrinsic.com');
 ```
+
+Consider the situation where Controller A has permission to send a message to
+`intrinsic.com`, and Controller B has access to user credentials. Within
+a properly configured Osgood application this means it's not possible to
+transmit user credentials to `intrinsic.com`.
 
 
 ## Installing Osgood
