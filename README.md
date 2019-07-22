@@ -18,6 +18,7 @@ the web browser should feel right at home with the APIs provided in Osgood.
 - [Osgood API Docs](https://github.com/IntrinsicLabs/osgood/wiki)
 - [Introducing Osgood (blog)](https://dev.to/tlhunter/introducing-osgood-4k1m)
 - [Hosting a Static Site and Contact Form with Osgood (blog)](https://dev.to/tlhunter/hosting-a-static-site-and-contact-form-with-osgood-5c1g)
+- [Osgood and CouchDB (blog)](https://dev.to/tlhunter/osgood-and-couchdb-125k)
 - [Introducing Osgood (presentation)](https://thomashunter.name/presentations/introducing-osgood/#/)
 
 
