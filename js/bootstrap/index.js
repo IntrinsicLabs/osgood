@@ -1,6 +1,8 @@
 {
   const debug = self._debug || (() => {});
   delete self._debug;
+  const sendError = self._sendError;
+  delete self._sendError;
   const startResponse = self._startResponse;
   delete self._startResponse;
   const writeResponse = self._writeResponse;
@@ -247,6 +249,18 @@
     }
   }
 
+  function inboundErrorHandler(fn) {
+    return async (reqId, ...args) => {
+      try {
+        await fn(reqId, ...args);
+      } catch (e) {
+        console.error(e.stack);
+        sendError(500, '', reqId);
+        delete inFlightInbounds[reqId];
+      }
+    };
+  }
+
   async function handleIncomingReqHead(reqId, fn, method, url, headers) {
     let writer;
     const body = new ReadableStream({
@@ -262,52 +276,47 @@
     writerMap.set(request, writer);
     inFlightInbounds[reqId] = request;
     let response;
-    try {
-      if (typeof fn !== 'function') {
-        throw new TypeError('Worker did not provide a valid handler');
-      }
-      response = fn(request, generateContextObject(url));
-      if (typeof response === 'object' && response !== null && typeof response.then === 'function') {
-        response = await response;
-      }
+    if (typeof fn !== 'function') {
+      throw new TypeError('Worker did not provide a valid handler');
+    }
+    response = fn(request, generateContextObject(url));
+    if (typeof response === 'object' && response !== null && typeof response.then === 'function') {
+      response = await response;
+    }
 
-      switch (typeof response) {
-        case 'string': {
-          // handle it in native code
-          break;
+    switch (typeof response) {
+      case 'string': {
+        // handle it in native code
+        break;
+      }
+      case 'object': {
+        if (response === null) {
+          throw new TypeError('Response was an invalid object');
         }
-        case 'object': {
-          if (response === null) {
-            throw new TypeError('Response was an invalid object');
-          }
-          if (response instanceof Response) {
-            // we're good!
-          } else if (isBufferish(response)) {
-            response = new Response(response, {
+        if (response instanceof Response) {
+          // we're good!
+        } else if (isBufferish(response)) {
+          response = new Response(response, {
+            headers: new Headers({
+              'Content-Type': 'application/octet-stream'
+            })
+          });
+        } else {
+          if (shouldSerializeIntoPOJO(response)) {
+            const body = JSON.stringify(response);
+            response = new Response(body, {
               headers: new Headers({
-                'Content-Type': 'application/octet-stream'
+                'Content-Type': 'application/json'
               })
             });
           } else {
-            if (shouldSerializeIntoPOJO(response)) {
-              const body = JSON.stringify(response);
-              response = new Response(body, {
-                headers: new Headers({
-                  'Content-Type': 'application/json'
-                })
-              });
-            } else {
-              throw new TypeError('Response object must be a POJO');
-            }
+            throw new TypeError('Response object must be a POJO');
           }
-          break;
         }
-        default:
-          throw new TypeError(`Invalid response type "${typeof response}"`);
+        break;
       }
-    } catch (e) {
-      console.error(e.stack);
-      response = new Response('', { status: 500 });
+      default:
+        throw new TypeError(`Invalid response type "${typeof response}"`);
     }
 
     if (typeof response === 'string') {
@@ -328,7 +337,7 @@
 
     delete inFlightInbounds[reqId];
   }
-  _setIncomingReqHeadHandler(handleIncomingReqHead);
+  _setIncomingReqHeadHandler(inboundErrorHandler(handleIncomingReqHead));
   delete self._setIncomingReqHeadHandler;
 
   async function handleIncomingReqBody(reqId, body) {
@@ -344,7 +353,7 @@
       await writer.enqueue(body);
     }
   }
-  _setIncomingReqBodyHandler(handleIncomingReqBody);
+  _setIncomingReqBodyHandler(inboundErrorHandler(handleIncomingReqBody));
   delete self._setIncomingReqBodyHandler;
 
   function parseUrl(url) {

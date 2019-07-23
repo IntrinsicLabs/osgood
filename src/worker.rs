@@ -220,6 +220,7 @@ fn make_globals(mut context: Local<Context>, route: &str) {
     let mut global = context.global();
     global.set("self", global);
     global.set("_route", route);
+    global.set_extern_method(context, "_sendError", inbound::send_error);
     global.set_extern_method(context, "_startResponse", inbound::start_response);
     global.set_extern_method(context, "_writeResponse", inbound::write_response);
     global.set_extern_method(context, "_stringResponse", inbound::string_response);

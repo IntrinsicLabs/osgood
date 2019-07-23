@@ -57,8 +57,10 @@ macro_rules! send_response {
         REQ_ID_TO_TX.with(move |cell| {
             let mut m = cell.borrow_mut();
             let _ = match (*m).remove($req_id).unwrap() {
-                ResponseHolder::Tx(tx) => tx.send($response),
-                _ => panic!("bad state"),
+                ResponseHolder::Tx(tx) => {
+                    let _ = tx.send($response);
+                }
+                _ => log_osgood_error!("sending response after end"),
             };
         });
     };
@@ -103,6 +105,16 @@ pub fn string_response(args: FunctionCallbackInfo) {
     let req_id = args.get(1).unwrap().to_number().value() as i32;
     let mut response = Response::new(args.get(0).unwrap().as_rust_string().into());
     (*response.headers_mut()).insert("Content-Type", HeaderValue::from_str("text/plain").unwrap());
+    send_response!(&req_id, Ok(response));
+}
+
+#[v8_fn]
+pub fn send_error(args: FunctionCallbackInfo) {
+    let req_id = args.get(2).unwrap().to_number().value() as i32;
+    let mut response = Response::new(args.get(1).unwrap().as_rust_string().into());
+    let status_code = args.get(0).unwrap().to_number().value() as u16;
+    (*response.headers_mut()).insert("Content-Type", HeaderValue::from_str("text/plain").unwrap());
+    *response.status_mut() = StatusCode::from_u16(status_code).unwrap();
     send_response!(&req_id, Ok(response));
 }
 
