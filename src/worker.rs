@@ -218,33 +218,36 @@ fn get_module_map() -> HashMap<i32, std::string::String> {
 
 fn make_globals(mut context: Local<Context>, route: &str) {
     let mut global = context.global();
+    let mut obj = Object::new();
+
     global.set("self", global);
-    global.set("_route", route);
-    global.set_extern_method(context, "_sendError", inbound::send_error);
-    global.set_extern_method(context, "_startResponse", inbound::start_response);
-    global.set_extern_method(context, "_writeResponse", inbound::write_response);
-    global.set_extern_method(context, "_stringResponse", inbound::string_response);
-    global.set_extern_method(context, "_setFetchHandler", fetch::set_fetch_handler);
-    global.set_extern_method(context, "_setTimerHandler", timers::set_timer_handler);
-    global.set_extern_method(
+    obj.set("_route", route);
+    obj.set_extern_method(context, "sendError", inbound::send_error);
+    obj.set_extern_method(context, "startResponse", inbound::start_response);
+    obj.set_extern_method(context, "writeResponse", inbound::write_response);
+    obj.set_extern_method(context, "stringResponse", inbound::string_response);
+    obj.set_extern_method(context, "setFetchHandler", fetch::set_fetch_handler);
+    obj.set_extern_method(context, "setTimerHandler", timers::set_timer_handler);
+    obj.set_extern_method(
         context,
-        "_setIncomingReqHeadHandler",
+        "setIncomingReqHeadHandler",
         inbound::set_inbound_req_head_handler,
     );
-    global.set_extern_method(
+    obj.set_extern_method(
         context,
-        "_setIncomingReqBodyHandler",
+        "setIncomingReqBodyHandler",
         inbound::set_inbound_req_body_handler,
     );
-    global.set_extern_method(context, "_setTimeout", timers::set_timeout);
-    global.set_extern_method(context, "_setInterval", timers::set_interval);
-    global.set_extern_method(context, "_clearTimer", timers::clear_timer);
-    global.set_extern_method(context, "_log", log);
-    global.set_extern_method(context, "_error", error);
-    global.set_extern_method(context, "_fetch", fetch::start_fetch);
+    obj.set_extern_method(context, "setTimeout", timers::set_timeout);
+    obj.set_extern_method(context, "setInterval", timers::set_interval);
+    obj.set_extern_method(context, "clearTimer", timers::clear_timer);
+    obj.set_extern_method(context, "_log", log);
+    obj.set_extern_method(context, "_error", error);
+    obj.set_extern_method(context, "_fetch", fetch::start_fetch);
     if let Ok(_var) = std::env::var("DEBUG") {
-        global.set_extern_method(context, "_debug", debug);
+        obj.set_extern_method(context, "debug", debug);
     }
+    global.set("_bindings", obj);
 }
 
 fn run_module(
