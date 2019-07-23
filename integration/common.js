@@ -4,6 +4,8 @@ const http = require('http');
 const https = require('https');
 const assert = require('assert');
 
+const TIMEOUT = 5000;
+
 const request = (port, url, opts = {}, reqBody = null) =>
   new Promise((resolve, reject) => {
     if (!url.startsWith('http:') && !url.startsWith('https:')) {
@@ -49,13 +51,24 @@ function runTests() {
   return Promise.all(testFns.map(fn => (async () => {
     const name = process.stdout.isTTY ? `\x1b[1m${fn.name}\x1b[22m` : fn.name;
     try {
-      await fn();
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(reject, TIMEOUT);
+        fn().then(resolve, reject).then(() => clearTimeout(timeout));
+      });
       console.log(green(`[PASS]: ${name}`));
     } catch (e) {
       console.log(red(`[FAIL]: ${name}\n${e.stack}`));
       process.exitCode = 1;
     }
   })()));
+}
+
+function timeout(t) {
+  return new Promise((_resolve, reject) => {
+    setTimeout(() => {
+      reject(new Error(`timeout out after ${t} ms`));
+    }, t);
+  });
 }
 
 module.exports = {
