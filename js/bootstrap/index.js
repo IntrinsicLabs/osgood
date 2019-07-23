@@ -1,28 +1,23 @@
 {
-  const debug = self._debug || (() => {});
-  delete self._debug;
-  const sendError = self._sendError;
-  delete self._sendError;
-  const startResponse = self._startResponse;
-  delete self._startResponse;
-  const writeResponse = self._writeResponse;
-  delete self._writeResponse;
-  const stringResponse = self._stringResponse;
-  delete self._stringResponse;
-  const setTimeout = self._setTimeout;
-  delete self._setTimeout;
-  const setInterval = self._setInterval;
-  delete self._setInterval;
-  const clearTimer = self._clearTimer;
-  delete self._clearTimer;
-  const _log = self._log;
-  delete self._log;
-  const _error = self._error;
-  delete self._error;
-  const _fetch = self._fetch;
-  delete self._fetch;
-  const _route = self._route;
-  delete self._route;
+  const {
+    sendError,
+    startResponse,
+    writeResponse,
+    stringResponse,
+    setFetchHandler,
+    setTimerHandler,
+    setIncomingReqHeadHandler,
+    setIncomingReqBodyHandler,
+    setTimeout,
+    setInterval,
+    clearTimer,
+    _log,
+    _error,
+    _fetch,
+    _route
+  } = self._bindings;
+  const debug = self._bindings.debug || (() => {});
+  delete self._bindings;
 
   // console methods
 
@@ -181,14 +176,12 @@
   function handleFetch(err, body, meta, fetchId) {
     fetchCbs[fetchId](err, body, meta);
   }
-  _setFetchHandler(handleFetch);
-  delete self._setFetchHandler;
+  setFetchHandler(handleFetch);
 
   function handleTimer(timerId) {
     timerMap.get(timerId)();
   }
-  _setTimerHandler(handleTimer);
-  delete self._setTimerHandler;
+  setTimerHandler(handleTimer);
 
   function generateContextObject(url) {
     let params;
@@ -337,8 +330,7 @@
 
     delete inFlightInbounds[reqId];
   }
-  _setIncomingReqHeadHandler(inboundErrorHandler(handleIncomingReqHead));
-  delete self._setIncomingReqHeadHandler;
+  setIncomingReqHeadHandler(inboundErrorHandler(handleIncomingReqHead));
 
   async function handleIncomingReqBody(reqId, body) {
     let writer = writerMap.get(inFlightInbounds[reqId]);
@@ -353,8 +345,7 @@
       await writer.enqueue(body);
     }
   }
-  _setIncomingReqBodyHandler(inboundErrorHandler(handleIncomingReqBody));
-  delete self._setIncomingReqBodyHandler;
+  setIncomingReqBodyHandler(inboundErrorHandler(handleIncomingReqBody));
 
   function parseUrl(url) {
     const urlObj = new URL(url);
