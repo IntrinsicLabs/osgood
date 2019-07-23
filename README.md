@@ -1,5 +1,7 @@
 ![Osgood](./osgood.svg)
 
+[![Gitter](https://badges.gitter.im/osgoodplace/community.svg)](https://gitter.im/osgoodplace/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+
 Osgood is a secure, fast, and simple platform for running JavaScript HTTP
 servers. It is written using Rust and V8.
 
