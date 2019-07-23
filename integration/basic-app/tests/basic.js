@@ -16,6 +16,14 @@ test(async function hello() {
   assert.strictEqual('Hello, world!\n', body.toString());
 });
 
+test(async function stringStreamResp() {
+  const [res, body] = await request(PORT, '/string-stream-resp');
+  assert.strictEqual(res.statusCode, 200);
+  assert.strictEqual(res.headers['content-type'], 'text/plain');
+  assert.strictEqual(res.headers['transfer-encoding'], 'chunked');
+  assert.strictEqual('Hello, world!\n', body.toString());
+});
+
 test(async function poststream() {
   const [res, body] = await request(PORT, '/poststream', { method: 'POST'}, 'foo1=bar1&such=stream');
   assert.strictEqual(res.statusCode, 200);
