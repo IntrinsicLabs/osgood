@@ -468,6 +468,7 @@
       if (typeof chunk === 'string') {
         const enc = new TextEncoder();
         chunk = enc.encode(chunk).buffer;
+        return chunk;
       }
       if (typeof chunk === 'object') {
         if (chunk.buffer && chunk.buffer instanceof ArrayBuffer) {

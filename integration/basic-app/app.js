@@ -12,6 +12,7 @@ app.get('/return-class-instance', 'return-class-instance.js');
 app.get('/complex-good', 'complex-good.js');
 app.get('/noreply', 'noreply.js');
 app.get('/echo-headers', 'echo-headers.js');
+app.get('/string-stream-resp', 'string-stream-resp.js');
 
 // Routes which talk to external services
 app.route('GET', '/urlencode', 'urlencode.js', policy => {
