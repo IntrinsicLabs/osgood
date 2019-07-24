@@ -148,3 +148,21 @@ test(async function httpPolicies() {
   const [res, body] = await request(PORT, '/http-policies');
   assert.strictEqual(res.statusCode, 200);
 });
+
+test(async function fetch_stringUrl() {
+  const [res, body] = await request(PORT, '/fetches/stringUrl');
+  assert.strictEqual(res.statusCode, 200);
+  assert.strictEqual(body.toString(), 'ok');
+});
+
+test(async function fetch_bodyString() {
+  const [res, body] = await request(PORT, '/fetches/bodyString');
+  assert.strictEqual(res.statusCode, 200);
+  assert.strictEqual(body.toString(), 'this is a bodyString test');
+});
+
+test(async function fetch_stream() {
+  const [res, body] = await request(PORT, '/fetches/stream');
+  assert.strictEqual(res.statusCode, 200);
+  assert.strictEqual(body.toString(), 'this is a stream test');
+});

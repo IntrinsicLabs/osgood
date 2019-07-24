@@ -36,6 +36,10 @@ app.route('GET', '/intrinsic', 'intrinsic.js', policy => {
 app.get('/http-policies', 'http-policies.js', policy => {
   policy.outboundHttp.allowGet('http://localhost:9001/');
 });
+app.get('/fetches/:type', 'fetches.js', policy => {
+  policy.outboundHttp.allowGet('http://localhost:9001/');
+  policy.outboundHttp.allowPost('http://localhost:9001/echo');
+});
 
 // Testing incorrect/problematic behavior
 app.get('/evil', 'evil.js');
