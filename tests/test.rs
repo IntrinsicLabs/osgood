@@ -6,14 +6,14 @@ mod tests {
     fn integration() {
         let child = Command::new("npm")
             .arg("install")
-            .current_dir("integration/server")
+            .current_dir("tests/integration/server")
             .status()
             .unwrap();
         assert!(child.success());
 
         let child = Command::new("node")
             .arg("--no-warnings")
-            .arg("integration/test")
+            .arg("tests/integration/test")
             .status()
             .unwrap();
         assert!(child.success());
