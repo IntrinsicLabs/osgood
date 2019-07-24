@@ -69,8 +69,8 @@ pub fn call_fetch_handler(mut context: Local<V8::Context>, args: Vec<&IntoValue>
 #[v8_fn]
 pub fn start_fetch(args: FunctionCallbackInfo) {
     let context = get_context();
-    let fetch_id = args.get(5).unwrap().to_number().value() as i32;
-    let type_string = args.get(6).unwrap().as_rust_string();
+    let fetch_id = args.get(4).unwrap().to_number().value() as i32;
+    let type_string = args.get(5).unwrap().as_rust_string();
     let body_type = match type_string.as_str() {
         "string" => FetchBodyType::String,
         "stream" => FetchBodyType::Stream,
@@ -79,7 +79,7 @@ pub fn start_fetch(args: FunctionCallbackInfo) {
     if body_type == FetchBodyType::Stream {
         let has_stream = FETCH_ID_TO_TX.with(|cell| cell.borrow().contains_key(&fetch_id));
         if has_stream {
-            let mut v8_chunk = args.get(4).unwrap();
+            let mut v8_chunk = args.get(3).unwrap();
             if v8_chunk.is_boolean() {
                 FETCH_ID_TO_TX.with(|cell| {
                     cell.borrow_mut().remove(&fetch_id);
@@ -94,11 +94,10 @@ pub fn start_fetch(args: FunctionCallbackInfo) {
             return;
         }
     }
-    //let mut v8_url = args.get(0).unwrap().to_object(); // the URL instance
-    let v8_url_string = args.get(1).unwrap().to_string();
-    let v8_headers = args.get(2).unwrap().to_object().get(context, "_headers");
-    let v8_method = args.get(3).unwrap().as_rust_string();
-    let v8_body_string = args.get(4).unwrap();
+    let v8_url_string = args.get(0).unwrap().to_string();
+    let v8_headers = args.get(1).unwrap().to_object().get(context, "_headers");
+    let v8_method = args.get(2).unwrap().as_rust_string();
+    let v8_body_string = args.get(3).unwrap();
 
     let mut header_map = headers::rust_headers(v8_headers, context);
     if !header_map.contains_key(USER_AGENT) {
