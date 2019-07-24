@@ -166,3 +166,39 @@ test(async function fetch_stream() {
   assert.strictEqual(res.statusCode, 200);
   assert.strictEqual(body.toString(), 'this is a stream test');
 });
+
+test(async function response_string() {
+  const [res, body] = await request(PORT, '/responses/string');
+  assert.strictEqual(res.statusCode, 200);
+  assert.strictEqual(body.toString(), 'this is a string test');
+});
+
+test(async function response_typedArray() {
+  const [res, body] = await request(PORT, '/responses/typedArray');
+  assert.strictEqual(res.statusCode, 200);
+  assert.strictEqual(body.toString(), 'this is a typedarray test');
+});
+
+test(async function response_arrayBuffer() {
+  const [res, body] = await request(PORT, '/responses/arrayBuffer');
+  assert.strictEqual(res.statusCode, 200);
+  assert.strictEqual(body.toString(), 'this is an arraybuffer test');
+});
+
+test(async function response_dataView() {
+  const [res, body] = await request(PORT, '/responses/dataView');
+  assert.strictEqual(res.statusCode, 200);
+  assert.strictEqual(body.toString(), 'this is a dataview test');
+});
+
+test(async function response_objectHeader() {
+  const [res] = await request(PORT, '/responses/objectHeader');
+  assert.strictEqual(res.statusCode, 500);
+  assert.strictEqual(res.headers.testheader, 'test header value');
+});
+
+test(async function response_classHeader() {
+  const [res] = await request(PORT, '/responses/classHeader');
+  assert.strictEqual(res.statusCode, 500);
+  assert.strictEqual(res.headers.testheader, 'test header value');
+});
