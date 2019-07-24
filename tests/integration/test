@@ -33,7 +33,7 @@ const server = spawn('./server/node-test-server.js', {
 });
 
 for (let file in apps) {
-  apps[file] = spawn(path.join(__dirname, '..', 'target', target, 'osgood'), [file], {
+  apps[file] = spawn(path.join(__dirname, '..', '..', 'target', target, 'osgood'), [file], {
     stdio: 'pipe'
   });
 }
