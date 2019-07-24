@@ -13,23 +13,11 @@ function handleFetch(err, body, meta, fetchId) {
 }
 setFetchHandler(handleFetch);
 
-function parseUrl(url) {
-  const urlObj = new URL(url);
-  const newObj = {};
-  for (const key of ['protocol', 'hostname', 'port', 'pathname']) {
-    newObj[key] = urlObj[key];
-  }
-  newObj.port = newObj.port || '80';
-  if (urlObj.search) {
-    newObj.pathname = newObj.pathname + urlObj.search;
-  }
-  return newObj;
-}
-
 // https://tools.ietf.org/html/rfc1867
 // https://www.w3.org/Protocols/rfc1341/7_2_Multipart.html#z0
 function generateMultipartFormData(formData) {
-  const boundary = `--------------OsgoodFormBoundary${Math.floor(Math.random() * 899999999) + 100000000}`;
+  const num = Math.floor(Math.random() * 899999999) + 100000000;
+  const boundary = `--------------OsgoodFormBoundary${num}`;
 
   let body = '';
 
@@ -47,12 +35,12 @@ function generateMultipartFormData(formData) {
 
   return {
     body,
-    boundary,
     contentType: `multipart/form-data; boundary=${boundary}`
   };
 }
 
 let increasingFetchId = 0;
+
 export default async function fetch(input, init) {
   const fetchId = ++increasingFetchId;
   const p = new Promise((resolve, reject) => {
@@ -86,60 +74,30 @@ export default async function fetch(input, init) {
   if (typeof input === 'string') {
     input = new Request(input, init);
   }
-  const parsedUrl = parseUrl(input.url);
 
-  if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
-    throw new TypeError(`Unsupported protocol: "${parsedUrl.protocol}"`);
+  const url = input.url;
+  if (!url.startsWith('http:') && !url.startsWith('https:')) {
+    throw new TypeError(`Unsupported protocol: "${url.split(':')[0]}:"`);
   }
+  const headers = input.headers;
+  const method = input.method.toUpperCase();
 
   if (typeof input._bodyString === 'string') {
-    _fetch(
-      parsedUrl,
-      input.url,
-      input.headers,
-      input.method.toUpperCase(),
-      input._bodyString,
-      fetchId,
-      'string'
-    );
-  } else if (input.body instanceof FormData) {
-    const { contentType, body } = generateMultipartFormData(input.body);
-
-    input.headers.set('Content-Type', contentType);
-
-    _fetch(
-      parsedUrl,
-      input.url,
-      input.headers,
-      input.method.toUpperCase(),
-      body,
-      fetchId,
-      'string'
-    );
+    _fetch(url, headers, method, input._bodyString, fetchId, 'string');
   } else if (typeof input.body === 'object') {
-    _fetch(
-      parsedUrl,
-      input.url,
-      input.headers,
-      input.method.toUpperCase(),
-      input._bodyString,
-      fetchId,
-      'stream'
-    );
-    for await (const chunk of input.body) {
-      _fetch(null, null, null, null, chunk, fetchId, 'stream');
+    if (input.body instanceof FormData) {
+      const { contentType, body } = generateMultipartFormData(input.body);
+      headers.set('Content-Type', contentType);
+      _fetch(url, headers, method, body, fetchId, 'string');
+    } else {
+      _fetch(url, headers, method, null, fetchId, 'stream');
+      for await (const chunk of input.body) {
+        _fetch(null, null, null, chunk, fetchId, 'stream');
+      }
+      _fetch(null, null, null, false, fetchId, 'stream');
     }
-    _fetch(null, null, null, null, false, fetchId, 'stream');
   } else {
-    _fetch(
-      parsedUrl,
-      input.url,
-      input.headers,
-      input.method.toUpperCase(),
-      null,
-      fetchId,
-      'none'
-    );
+    _fetch(url, headers, method, null, fetchId, 'none');
   }
 
   return p;
