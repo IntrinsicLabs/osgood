@@ -1,6 +1,13 @@
 language: rust
 rust: stable
 
+# https://levans.fr/rust_travis_cache.html
+cache:
+  directories:
+    - $HOME/.cargo
+before_cache:
+  - rm -rf $HOME/.cargo/registry
+
 os:
   - linux
   - osx
