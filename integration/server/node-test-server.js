@@ -64,6 +64,11 @@ http.createServer((req, res) => {
     });
   }
 
+  if (req.url === '/echo' && req.method === 'POST') {
+    req.pipe(res);
+    return;
+  }
+
   if (req.url === '/image.png') {
     res.writeHead(200, {
       'Content-Type': 'image/png'
