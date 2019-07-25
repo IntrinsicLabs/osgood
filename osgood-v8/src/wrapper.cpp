@@ -28,6 +28,10 @@
   v8::Local<TYPE> persistent_to_##NAME(v8::Isolate * isolate, v8::Persistent<TYPE> * persistent) {                                   \
     return v8::Local<TYPE>::New(isolate, *persistent); \
   }
+#define PERSISTENT_RESET(TYPE, NAME)                                           \
+  void persistent_reset_##NAME(v8::Persistent<TYPE> * persistent) {                 \
+    persistent->Reset();                                                       \
+  }
 
 static std::unique_ptr<v8::Platform> g_platform;
 
@@ -190,5 +194,6 @@ v8::MaybeLocal<v8::Module> from_local_module(v8::Local<v8::Module> module) {
 V8_TYPES(EMPTY_MAYBE)
 V8_TYPES(TO_PERSISTENT)
 V8_TYPES(FROM_PERSISTENT)
+V8_TYPES(PERSISTENT_RESET)
 
 } // namespace osgood
