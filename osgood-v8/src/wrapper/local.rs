@@ -21,15 +21,6 @@ pub struct Persistent<T> {
     persistent_: *mut V8::Persistent<T>,
 }
 
-// TODO figure out how to call `Reset`, as it's an inline. For now, since we only use persistents
-// for the module cache, we're ignoring this since it will last as long as the thread anyway.
-
-//impl<T> Drop for Persistent<T> {
-//    fn drop(&mut self) {
-//        self.persistent_.Reset()
-//    }
-//}
-
 /// This trait is for any types that can be converted to Local<Value>
 pub trait IntoValue {
     fn into_value(&self) -> Local<V8::Value>;
@@ -77,7 +68,7 @@ impl<T> V8::MaybeLocal<T> {
 }
 
 macro_rules! persistent {
-    ($type:ty, $to_persistent:ident, $from_persistent: ident) => {
+    ($type:ty, $to_persistent:ident, $from_persistent: ident, $reset: ident) => {
         impl convert::From<Local<$type>> for Persistent<$type> {
             fn from(local: Local<$type>) -> Persistent<$type> {
                 let inner = local.local_;
@@ -102,6 +93,17 @@ macro_rules! persistent {
                 unsafe { osgood::$from_persistent(Isolate::raw(), persistent_ptr).into() }
             }
         }
+
+        impl Persistent<$type> {
+            pub fn reset(&self) {
+                let persistent_ptr = self.persistent_;
+                unsafe { osgood::$reset(persistent_ptr) }
+            }
+
+            pub fn into_local(&self) -> Local<$type> {
+                self.into()
+            }
+        }
     };
 }
 
@@ -121,25 +123,72 @@ macro_rules! each_valuable_type {
     };
 }
 
-persistent!(V8::Value, persistent_from_value, persistent_to_value);
-persistent!(V8::Script, persistent_from_script, persistent_to_script);
-persistent!(V8::Object, persistent_from_object, persistent_to_object);
-persistent!(V8::Array, persistent_from_array, persistent_to_array);
-persistent!(V8::String, persistent_from_string, persistent_to_string);
-persistent!(V8::Number, persistent_from_number, persistent_to_number);
-persistent!(V8::Integer, persistent_from_integer, persistent_to_integer);
+persistent!(
+    V8::Value,
+    persistent_from_value,
+    persistent_to_value,
+    persistent_reset_value
+);
+persistent!(
+    V8::Script,
+    persistent_from_script,
+    persistent_to_script,
+    persistent_reset_script
+);
+persistent!(
+    V8::Object,
+    persistent_from_object,
+    persistent_to_object,
+    persistent_reset_object
+);
+persistent!(
+    V8::Array,
+    persistent_from_array,
+    persistent_to_array,
+    persistent_reset_array
+);
+persistent!(
+    V8::String,
+    persistent_from_string,
+    persistent_to_string,
+    persistent_reset_string
+);
+persistent!(
+    V8::Number,
+    persistent_from_number,
+    persistent_to_number,
+    persistent_reset_number
+);
+persistent!(
+    V8::Integer,
+    persistent_from_integer,
+    persistent_to_integer,
+    persistent_reset_integer
+);
 persistent!(
     V8::Function,
     persistent_from_function,
-    persistent_to_function
+    persistent_to_function,
+    persistent_reset_function
 );
 persistent!(
     V8::ArrayBuffer,
     persistent_from_array_buffer,
-    persistent_to_array_buffer
+    persistent_to_array_buffer,
+    persistent_reset_array_buffer
 );
-persistent!(V8::Module, persistent_from_module, persistent_to_module);
-persistent!(V8::Message, persistent_from_message, persistent_to_message);
+persistent!(
+    V8::Module,
+    persistent_from_module,
+    persistent_to_module,
+    persistent_reset_module
+);
+persistent!(
+    V8::Message,
+    persistent_from_message,
+    persistent_to_message,
+    persistent_reset_message
+);
 each_valuable_type!(V8::Object);
 each_valuable_type!(V8::Map);
 each_valuable_type!(V8::Array);

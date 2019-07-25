@@ -11,12 +11,7 @@ const {
   stringResponse,
   setFetchHandler,
   setIncomingReqHeadHandler,
-  setIncomingReqBodyHandler,
 } = self._bindings;
-
-const inFlightInbounds = {};
-
-const writerMap = new WeakMap();
 
 // This function checks to see if the object should serialize into a POJO
 // Object, one that is free of class instances. "Double getters" do exist.
@@ -64,38 +59,46 @@ function shouldSerializeIntoPOJO(obj) {
   }
 }
 
-function inboundErrorHandler(fn) {
-  return async (reqId, ...args) => {
+function incomingReqHeadHandler(reqId, fn, method, url, headers) {
+  let writer;
+  (async () => {
     try {
-      await fn(reqId, ...args);
+      if (typeof fn !== 'function') {
+        throw new TypeError('Worker did not provide a valid handler');
+      }
+      const body = new ReadableStream({
+        start(controller) {
+          writer = controller;
+        }
+      });
+      const request = new Request(url, {
+        method,
+        headers,
+        body
+      });
+      await getResponse(reqId, fn, url, request);
     } catch (e) {
       console.error(e.stack);
       sendError(500, '', reqId);
-      delete inFlightInbounds[reqId];
+    }
+  })();
+  return async function handleIncomingReqBody(body) {
+    if (typeof body === 'undefined') {
+      await writer.close();
+    } else {
+      await writer.enqueue(body);
     }
   };
 }
+setIncomingReqHeadHandler(incomingReqHeadHandler);
 
-async function handleIncomingReqHead(reqId, fn, method, url, headers) {
-  let writer;
-  const body = new ReadableStream({
-    start(controller) {
-      writer = controller;
-    }
-  });
-  const request = new Request(url, {
-    method,
-    headers,
-    body
-  });
-  writerMap.set(request, writer);
-  inFlightInbounds[reqId] = request;
-  let response;
-  if (typeof fn !== 'function') {
-    throw new TypeError('Worker did not provide a valid handler');
-  }
-  response = fn(request, generateContextObject(url));
-  if (typeof response === 'object' && response !== null && typeof response.then === 'function') {
+function isPromise(p) {
+  return typeof p === 'object' && p !== null && typeof p.then === 'function';
+}
+
+async function getResponse(reqId, fn, url, request) {
+  let response = fn(request, generateContextObject(url));
+  if (isPromise(response)) {
     response = await response;
   }
 
@@ -149,25 +152,7 @@ async function handleIncomingReqHead(reqId, fn, method, url, headers) {
   } else {
     startResponse(response, reqId, response._bodyString);
   }
-
-  delete inFlightInbounds[reqId];
 }
-setIncomingReqHeadHandler(inboundErrorHandler(handleIncomingReqHead));
-
-async function handleIncomingReqBody(reqId, body) {
-  let writer = writerMap.get(inFlightInbounds[reqId]);
-  if (!writer) {
-    // Response has already been sent, so we don't care about any
-    // more incoming data.
-    return;
-  }
-  if (typeof body === 'undefined') {
-    await writer.close();
-  } else {
-    await writer.enqueue(body);
-  }
-}
-setIncomingReqBodyHandler(inboundErrorHandler(handleIncomingReqBody));
 
 function chunkAsArrayBuffer(chunk) {
   if (!(chunk instanceof ArrayBuffer)) {

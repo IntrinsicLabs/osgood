@@ -233,11 +233,6 @@ fn make_globals(mut context: Local<Context>, route: &str) {
         "setIncomingReqHeadHandler",
         inbound::set_inbound_req_head_handler,
     );
-    obj.set_extern_method(
-        context,
-        "setIncomingReqBodyHandler",
-        inbound::set_inbound_req_body_handler,
-    );
     obj.set_extern_method(context, "setTimeout", timers::set_timeout);
     obj.set_extern_method(context, "setInterval", timers::set_interval);
     obj.set_extern_method(context, "clearTimer", timers::clear_timer);

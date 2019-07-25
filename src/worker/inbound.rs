@@ -13,13 +13,13 @@ thread_local! {
     static NEXT_REQ_ID: RefCell<i32> = RefCell::new(0);
 }
 lazy_thread_local!(HEAD_CB, set_head_cb, Persistent<V8::Function>);
-lazy_thread_local!(BODY_CB, set_body_cb, Persistent<V8::Function>);
 
 pub fn handle_inbound((req, tx): Message, origin: &str) -> impl Future<Item = (), Error = ()> {
     let req_id = get_next_req_id();
     REQ_ID_TO_TX.with(|cell| {
         cell.borrow_mut().insert(req_id, ResponseHolder::Tx(tx));
     });
+    let body_handler: Persistent<V8::Function>;
     let mut context = get_context();
     handle_scope!({
         let worker_handler = context.global().get_private(context, "worker_handler");
@@ -28,23 +28,29 @@ pub fn handle_inbound((req, tx): Message, origin: &str) -> impl Future<Item = ()
         uri.push_str(&origin);
         uri.push_str(&req.uri().to_string());
         let v8_headers = headers::v8_headers(req.headers());
-        call_inbound_req_head_handler(
+        body_handler = call_inbound_req_head_handler(
             context,
             vec![&req_id, &worker_handler, &method, &uri, &v8_headers],
-        );
+        )
+        .into();
     });
 
     req.into_body()
         .for_each(move |chunk| {
             handle_scope!({
                 let chunk = std::string::String::from_utf8(chunk.to_vec()).unwrap();
-                call_inbound_req_body_handler(context, vec![&req_id, &chunk]);
+                let null = Isolate::null();
+                let mut cb = body_handler.into_local();
+                cb.call(context, &null, vec![&chunk]);
             });
             future::ok(())
         })
         .and_then(move |_| {
             handle_scope!({
-                call_inbound_req_body_handler(context, vec![&req_id]);
+                let null = Isolate::null();
+                let mut cb = body_handler.into_local();
+                cb.call(context, &null, vec![]);
+                body_handler.reset();
             });
             future::ok(())
         })
@@ -74,26 +80,15 @@ pub fn set_inbound_req_head_handler(args: FunctionCallbackInfo) {
     set_head_cb(func.into());
 }
 
-#[v8_fn]
-pub fn set_inbound_req_body_handler(args: FunctionCallbackInfo) {
-    let func = args.get(0).unwrap().to_function();
-    set_body_cb(func.into());
-}
-
-pub fn call_inbound_req_head_handler(context: Local<V8::Context>, args: Vec<&IntoValue>) {
+pub fn call_inbound_req_head_handler(
+    context: Local<V8::Context>,
+    args: Vec<&IntoValue>,
+) -> Local<V8::Function> {
     let null = Isolate::null();
     HEAD_CB.with(|cb| {
-        let mut cb: Local<V8::Function> = cb.borrow().unwrap().into();
-        cb.call(context, &null, args);
-    });
-}
-
-pub fn call_inbound_req_body_handler(context: Local<V8::Context>, args: Vec<&IntoValue>) {
-    let null = Isolate::null();
-    BODY_CB.with(|cb| {
-        let mut cb: Local<V8::Function> = cb.borrow().unwrap().into();
-        cb.call(context, &null, args);
-    });
+        let mut cb = cb.borrow().unwrap().into_local();
+        cb.call(context, &null, args).to_function()
+    })
 }
 
 #[v8_fn]
