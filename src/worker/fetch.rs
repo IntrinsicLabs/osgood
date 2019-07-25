@@ -15,6 +15,7 @@ use super::*;
 thread_local! {
     static FETCH_ID_TO_TX: RefCell<HashMap<i32, body::Sender>> = RefCell::new(HashMap::new());
 }
+lazy_thread_local!(FETCH_CB, set_fetch_cb, Persistent<V8::Function>);
 
 macro_rules! fetch_outbound {
     ($fn_name:ident, $client:expr) => {
@@ -51,19 +52,16 @@ enum FetchBodyType {
 
 #[v8_fn]
 pub fn set_fetch_handler(args: FunctionCallbackInfo) {
-    let mut context = get_context();
-    let mut global = context.global();
     let func = args.get(0).unwrap().to_function();
-    global.set_private(context, "fetch_handler", func);
+    set_fetch_cb(func.into());
 }
 
-pub fn call_fetch_handler(mut context: Local<V8::Context>, args: Vec<&IntoValue>) {
+pub fn call_fetch_handler(context: Local<V8::Context>, args: Vec<&IntoValue>) {
     let null = Isolate::null();
-    context
-        .global()
-        .get_private(context, "fetch_handler")
-        .to_function()
-        .call(context, &null, args);
+    FETCH_CB.with(|cb| {
+        let mut cb: Local<V8::Function> = cb.borrow().unwrap().into();
+        cb.call(context, &null, args);
+    });
 }
 
 #[v8_fn]

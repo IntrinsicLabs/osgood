@@ -97,7 +97,7 @@ extern "C" fn resolve_internal_module(
 ) -> V8::MaybeLocal<V8::Module> {
     let specifier = Local::from(specifier).as_rust_string();
     let module = BOOTSTRAP_MAP.with(|map| {
-        map.borrow_mut().get_mut(&specifier).and_then(|persistent| {
+        map.borrow().get(&specifier).and_then(|persistent| {
             let local: Local<V8::Module> = persistent.into();
             Some(local.into())
         })

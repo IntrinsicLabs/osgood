@@ -16,6 +16,7 @@ impl<T> Local<T> {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
 pub struct Persistent<T> {
     persistent_: *mut V8::Persistent<T>,
 }
@@ -88,8 +89,15 @@ macro_rules! persistent {
             }
         }
 
-        impl convert::From<&mut Persistent<$type>> for Local<$type> {
-            fn from(persistent: &mut Persistent<$type>) -> Local<$type> {
+        impl convert::From<Persistent<$type>> for Local<$type> {
+            fn from(persistent: Persistent<$type>) -> Local<$type> {
+                let persistent_ptr = persistent.persistent_;
+                unsafe { osgood::$from_persistent(Isolate::raw(), persistent_ptr).into() }
+            }
+        }
+
+        impl convert::From<&Persistent<$type>> for Local<$type> {
+            fn from(persistent: &Persistent<$type>) -> Local<$type> {
                 let persistent_ptr = persistent.persistent_;
                 unsafe { osgood::$from_persistent(Isolate::raw(), persistent_ptr).into() }
             }
@@ -120,6 +128,11 @@ persistent!(V8::Array, persistent_from_array, persistent_to_array);
 persistent!(V8::String, persistent_from_string, persistent_to_string);
 persistent!(V8::Number, persistent_from_number, persistent_to_number);
 persistent!(V8::Integer, persistent_from_integer, persistent_to_integer);
+persistent!(
+    V8::Function,
+    persistent_from_function,
+    persistent_to_function
+);
 persistent!(
     V8::ArrayBuffer,
     persistent_from_array_buffer,
