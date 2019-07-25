@@ -12,6 +12,8 @@ thread_local! {
 thread_local! {
     static NEXT_REQ_ID: RefCell<i32> = RefCell::new(0);
 }
+lazy_thread_local!(HEAD_CB, set_head_cb, Persistent<V8::Function>);
+lazy_thread_local!(BODY_CB, set_body_cb, Persistent<V8::Function>);
 
 pub fn handle_inbound((req, tx): Message, origin: &str) -> impl Future<Item = (), Error = ()> {
     let req_id = get_next_req_id();
@@ -68,36 +70,30 @@ macro_rules! send_response {
 
 #[v8_fn]
 pub fn set_inbound_req_head_handler(args: FunctionCallbackInfo) {
-    let mut context = get_context();
-    let mut global = context.global();
     let func = args.get(0).unwrap().to_function();
-    global.set_private(context, "inbound_req_head_handler", func);
+    set_head_cb(func.into());
 }
 
 #[v8_fn]
 pub fn set_inbound_req_body_handler(args: FunctionCallbackInfo) {
-    let mut context = get_context();
-    let mut global = context.global();
     let func = args.get(0).unwrap().to_function();
-    global.set_private(context, "inbound_req_body_handler", func);
+    set_body_cb(func.into());
 }
 
-pub fn call_inbound_req_head_handler(mut context: Local<V8::Context>, args: Vec<&IntoValue>) {
+pub fn call_inbound_req_head_handler(context: Local<V8::Context>, args: Vec<&IntoValue>) {
     let null = Isolate::null();
-    context
-        .global()
-        .get_private(context, "inbound_req_head_handler")
-        .to_function()
-        .call(context, &null, args);
+    HEAD_CB.with(|cb| {
+        let mut cb: Local<V8::Function> = cb.borrow().unwrap().into();
+        cb.call(context, &null, args);
+    });
 }
 
-pub fn call_inbound_req_body_handler(mut context: Local<V8::Context>, args: Vec<&IntoValue>) {
+pub fn call_inbound_req_body_handler(context: Local<V8::Context>, args: Vec<&IntoValue>) {
     let null = Isolate::null();
-    context
-        .global()
-        .get_private(context, "inbound_req_body_handler")
-        .to_function()
-        .call(context, &null, args);
+    BODY_CB.with(|cb| {
+        let mut cb: Local<V8::Function> = cb.borrow().unwrap().into();
+        cb.call(context, &null, args);
+    });
 }
 
 #[v8_fn]

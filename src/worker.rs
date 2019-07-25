@@ -291,13 +291,10 @@ extern "C" fn resolve_module(
     };
 
     let maybe_module = MODULE_CACHE.with(|cache| {
-        cache
-            .borrow_mut()
-            .get_mut(&full_path)
-            .and_then(|persistent| {
-                let local: Local<V8::Module> = persistent.into();
-                Some(local.into())
-            })
+        cache.borrow().get(&full_path).and_then(|persistent| {
+            let local: Local<V8::Module> = persistent.into();
+            Some(local.into())
+        })
     });
     if let Some(maybe_module) = maybe_module {
         maybe_module
