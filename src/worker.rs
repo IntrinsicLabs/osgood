@@ -242,6 +242,7 @@ fn make_globals(mut context: Local<Context>, route: &str) {
     if let Ok(_var) = std::env::var("DEBUG") {
         obj.set_extern_method(context, "debug", debug);
     }
+    obj.set_extern_method(context, "getPrivate", get_private);
     global.set("_bindings", obj);
 }
 
@@ -348,4 +349,10 @@ fn error(args: FunctionCallbackInfo) {
 #[v8_fn]
 fn debug(args: FunctionCallbackInfo) {
     log_debug!("JS debug: {}", args.get(0).unwrap().as_rust_string());
+}
+
+#[v8_fn]
+fn get_private(args: FunctionCallbackInfo) {
+    let ret = Private::for_api(&args.get(0).unwrap().as_rust_string());
+    args.set_return_value(&ret);
 }

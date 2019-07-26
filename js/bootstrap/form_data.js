@@ -1,14 +1,17 @@
+const dataSym = _bindings.getPrivate('data');
+
 export default class FormData {
 
   // TODO: This could be a Map<name, [[value, filename?]]> for efficient lookups
   // However, there shouldn't be more than a dozen entries
   // Duplicate names are allowed to exist otherwise it could be a simple Map<name, [value, filename?]>
-  #data = [];
+  //#data = [];  // using `dataSym`
 
   constructor(form) {
     if (form) {
       throw new TypeError("Osgood FormData doesn't support a form argument");
     }
+    this[dataSym] = [];
   }
 
   // FormData can have duplicate entries
@@ -25,7 +28,7 @@ export default class FormData {
     //   d.push(String(filename));
     // }
 
-    this.#data.push(d);
+    this[dataSym].push(d);
   }
 
   // destroys all existing entries with same name
@@ -38,18 +41,18 @@ export default class FormData {
   delete(name) {
     const new_data = [];
 
-    for (let entry of this.#data) {
+    for (let entry of this[dataSym]) {
       if (entry[0] !== name) {
         new_data.push(entry);
       }
     }
 
-    this.#data = new_data;
+    this[dataSym] = new_data;
   }
 
   // get first entry of `name`
   get(name) {
-    for (let entry of this.#data) {
+    for (let entry of this[dataSym]) {
       if (entry[0] === name) {
         return entry[1];
       }
@@ -60,7 +63,7 @@ export default class FormData {
   getAll(name) {
     const matches = [];
 
-    for (let entry of this.#data) {
+    for (let entry of this[dataSym]) {
       if (entry[0] === name) {
         matches.push(entry[1]);
       }
@@ -70,7 +73,7 @@ export default class FormData {
   }
 
   has(name) {
-    for (let entry of this.#data) {
+    for (let entry of this[dataSym]) {
       if (entry[0] === name) {
         return true
       }
@@ -80,30 +83,30 @@ export default class FormData {
   }
 
   entries() {
-    return this.#data[Symbol.iterator]();
+    return this[dataSym][Symbol.iterator]();
   }
 
   [Symbol.iterator]() {
-    return this.#data[Symbol.iterator]();
+    return this[dataSym][Symbol.iterator]();
   }
 
   // iterator<key>
   *keys() {
-    for (let entry of this.#data) {
+    for (let entry of this[dataSym]) {
       yield entry[0];
     }
   }
 
   // iterator<value>
   *values() {
-    for (let entry of this.#data) {
+    for (let entry of this[dataSym]) {
       yield entry[1];
     }
   }
 
   // not in the spec but Firefox and Chrome have it
   forEach(fn) {
-    for (let entry of this.#data) {
+    for (let entry of this[dataSym]) {
       fn(entry[0], entry[1], this);
     }
   }

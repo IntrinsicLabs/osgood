@@ -198,6 +198,7 @@ each_valuable_type!(V8::Function);
 each_valuable_type!(V8::Number);
 each_valuable_type!(V8::Integer);
 each_valuable_type!(V8::ArrayBuffer);
+each_valuable_type!(V8::Private);
 
 // For V8::Value, this is not done with each_valuable_type! because the From is already implemented
 // for identical types
