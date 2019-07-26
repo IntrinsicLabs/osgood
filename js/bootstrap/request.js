@@ -3,54 +3,63 @@ import { StringReadable, isBufferish } from 'internal:common.js';
 import Headers from 'internal:headers.js';
 import FormData from 'internal:form_data.js';
 
+const { getPrivate } = _bindings;
+
+const rawHeadersSym = getPrivate('rawHeaders');
+const headersSym = getPrivate('headers');
+const urlSym = getPrivate('url');
+const methodSym = getPrivate('method');
+const bodySym = getPrivate('body');
+const _bodyStringSym = getPrivate('_bodyString');
+
 export default class Request {
-  #rawHeaders; // not yet instantiated
-  #headers; // instantiated
-  #url;
-  #method;
-  #body;
-  #_bodyString;
+  // #rawHeaders; // not yet instantiated
+  // #headers; // instantiated
+  // #url;
+  // #method;
+  // #body;
+  // #_bodyString;
   constructor(input, init = {}) {
     // TODO support `input` being a Request
-    this.#url = input;
+    this[urlSym] = input;
 
     if (!(init.headers instanceof Headers)) {
-      this.#rawHeaders = init.headers;
+      this[rawHeadersSym] = init.headers;
     } else {
-      this.#headers = init.headers;
+      this[headersSym] = init.headers;
     }
-    this.#method = init.method || 'GET';
+    this[methodSym] = init.method || 'GET';
 
     if (init.body instanceof ReadableStream || init.body instanceof FormData) {
-      this.#body = init.body;
+      this[bodySym] = init.body;
     } else if (typeof init.body === 'string') {
-      this.#_bodyString = init.body;
+      this[_bodyStringSym] = init.body;
     } else if (isBufferish(init.body)) {
-      this.#body = new StringReadable(init.body);
+      this[bodySym] = new StringReadable(init.body);
     }
   }
 
   get headers() {
-    if (!this.#headers) {
-      this.#headers = new Headers(this.#rawHeaders);
+    if (!this[headersSym]) {
+      this[headersSym] = new Headers(this[rawHeadersSym]);
     }
-    return this.#headers;
+    return this[headersSym];
   }
 
   get url() {
-    return this.#url;
+    return this[urlSym];
   }
 
   get method() {
-    return this.#method;
+    return this[methodSym];
   }
 
   get body() {
-    return this.#body;
+    return this[bodySym];
   }
 
   get _bodyString() {
-    return this.#_bodyString;
+    return this[_bodyStringSym];
   }
 }
 BodyMixin.mixin(Request);

@@ -48,6 +48,9 @@ pub use array_buffer::*;
 mod exception;
 pub use exception::*;
 
+mod private;
+pub use private::*;
+
 /// This is a convenience `None`, which can be used by reference as a "null" in arguments to v8
 /// functions.
 pub const NULL: Option<u16> = None;

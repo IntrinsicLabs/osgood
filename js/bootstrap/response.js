@@ -2,51 +2,60 @@ import BodyMixin from 'internal:body_mixin.js';
 import { StringReadable, isBufferish } from 'internal:common.js';
 import Headers from 'internal:headers.js';
 
+const { getPrivate } = _bindings;
+
+const rawHeadersSym = getPrivate('rawHeaders');
+const headersSym = getPrivate('headers');
+const statusSym = getPrivate('status');
+const statusTextSym = getPrivate('statusText');
+const bodySym = getPrivate('body');
+const _bodyStringSym = getPrivate('_bodyString');
+
 export default class Response {
-  #rawHeaders; // not yet instantiated
-  #headers; // instantiated
-  #status;
-  #statusText;
-  #body;
-  #_bodyString;
+  // #rawHeaders; // not yet instantiated
+  // #headers; // instantiated
+  // #status;
+  // #statusText;
+  // #body;
+  // #_bodyString;
   constructor(body, init = {}) {
-    this.#status = init.status || 200;
-    this.#statusText = init.statusText || 'OK';
+    this[statusSym] = init.status || 200;
+    this[statusTextSym] = init.statusText || 'OK';
     if (!(init.headers instanceof Headers)) {
-      this.#rawHeaders = init.headers;
+      this[rawHeadersSym] = init.headers;
     } else {
-      this.#headers = init.headers;
+      this[headersSym] = init.headers;
     }
     if (body instanceof ReadableStream || body instanceof TransformStream) {
-      this.#body = body;
+      this[bodySym] = body;
     } else if (typeof body === 'string') {
-      this.#_bodyString = body;
+      this[_bodyStringSym] = body;
     } else if (isBufferish(body)) {
-      this.#body = new StringReadable(body);
+      this[bodySym] = new StringReadable(body);
     }
   }
 
   get headers() {
-    if (!this.#headers) {
-      this.#headers = new Headers(this.#rawHeaders);
+    if (!this[headersSym]) {
+      this[headersSym] = new Headers(this[rawHeadersSym]);
     }
-    return this.#headers;
+    return this[headersSym];
   }
 
   get status() {
-    return this.#status;
+    return this[statusSym];
   }
 
   get statusText() {
-    return this.#statusText;
+    return this[statusTextSym];
   }
 
   get body() {
-    return this.#body;
+    return this[bodySym];
   }
 
   get _bodyString() {
-    return this.#_bodyString;
+    return this[_bodyStringSym];
   }
 
 }
