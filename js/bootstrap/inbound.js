@@ -105,7 +105,8 @@ async function getResponse(reqId, fn, url, request) {
   switch (typeof response) {
     case 'string': {
       // handle it in native code
-      break;
+      stringResponse(response, reqId);
+      return;
     }
     case 'object': {
       if (response === null) {
@@ -137,9 +138,7 @@ async function getResponse(reqId, fn, url, request) {
       throw new TypeError(`Invalid response type "${typeof response}"`);
   }
 
-  if (typeof response === 'string') {
-    stringResponse(response, reqId);
-  } else if (response.body) {
+  if (response.body) {
     startResponse(response, reqId);
     let stream =
       response.body instanceof TransformStream
