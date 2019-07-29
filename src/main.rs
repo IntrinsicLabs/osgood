@@ -328,13 +328,19 @@ fn make_workers(config: Config) -> Result<Vec<Worker>, std::io::Error> {
 }
 
 fn parse_args<'a>() -> (string::String, clap::ArgMatches<'a>) {
-    let (v8_flags_vec, args): (Vec<string::String>, Vec<string::String>) =
+    let (v8_flags_vec, mut args): (Vec<string::String>, Vec<string::String>) =
         std::env::args().partition(|arg| arg.starts_with("--v8-"));
     let v8_flags_vec: Vec<string::String> = v8_flags_vec
         .iter()
         .map(|f| f.replace("--v8-", "--"))
         .collect();
     let v8_flags = v8_flags_vec.join(" ");
+    if v8_flags.contains("--help") {
+        // this suppresses error asking for a filename if just trying to get --v8-help, while stil
+        // requiring it in all other cases
+        args.push("IGNORED_FILENAME_FOR_HELP_PURPOSES".to_owned());
+    }
+    eprintln!("{:?}", args);
     let options = clap::App::new("osgood")
         .version(crate_version!())
         .arg(
@@ -348,5 +354,6 @@ fn parse_args<'a>() -> (string::String, clap::ArgMatches<'a>) {
              '--v8-' instead of just '--'. List them with '--v8-help'.",
         )
         .get_matches_from(args);
+
     (v8_flags, options)
 }
