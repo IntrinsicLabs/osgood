@@ -340,7 +340,6 @@ fn parse_args<'a>() -> (string::String, clap::ArgMatches<'a>) {
         // requiring it in all other cases
         args.push("IGNORED_FILENAME_FOR_HELP_PURPOSES".to_owned());
     }
-    eprintln!("{:?}", args);
     let options = clap::App::new("osgood")
         .version(crate_version!())
         .arg(
