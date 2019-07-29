@@ -705,7 +705,7 @@ dependencies = [
 
 [[package]]
 name = "osgood"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "ansi_term 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -718,8 +718,8 @@ dependencies = [
  "libc 0.2.51 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "mime_guess 1.8.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "osgood-v8 0.1.0",
- "osgood-v8-macros 0.1.0",
+ "osgood-v8 0.2.0",
+ "osgood-v8-macros 0.2.0",
  "path-clean 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf 0.7.24 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf_codegen 0.7.24 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -730,7 +730,7 @@ dependencies = [
 
 [[package]]
 name = "osgood-v8"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bindgen 0.42.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "cc 1.0.35 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -739,9 +739,9 @@ dependencies = [
 
 [[package]]
 name = "osgood-v8-macros"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
- "osgood-v8 0.1.0",
+ "osgood-v8 0.2.0",
  "quote 0.6.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "syn 0.15.32 (registry+https://github.com/rust-lang/crates.io-index)",
 ]

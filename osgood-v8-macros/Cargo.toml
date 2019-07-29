@@ -1,6 +1,6 @@
 [package]
 name = "osgood-v8-macros"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Intrinsic <hello@intrinsic.com>"]
 edition = "2018"
 
