@@ -6,6 +6,7 @@
 - [Osgood Application File](Osgood-Application-File): One file which handles routing and security policies
 - [Osgood Worker Files](Osgood-Worker-Files): At least one file for handling application logic
 - [JavaScript Features](JavaScript-Features): Osgood supports a different set of features than web browsers
+- [Command Line Usage](Command-Line-Usage): Running Osgood from the CLI
 
 ## Sample Applications
 
