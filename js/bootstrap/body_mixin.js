@@ -1,6 +1,49 @@
-import { isBufferish } from 'internal:common.js';
+import { StringReadable, isBufferish } from 'internal:common.js';
+import Headers from 'internal:headers.js';
+
+const { getPrivate } = _bindings;
+
+const rawHeadersSym = getPrivate('rawHeaders');
+const headersSym = getPrivate('headers');
+const bodySym = getPrivate('body');
+const _bodyStringSym = getPrivate('_bodyString');
 
 export default class BodyMixin {
+  // #rawHeaders; // not yet instantiated
+  // #headers; // instantiated
+  // #body;
+  // #_bodyString;
+
+  static init(body, initObj = {}) {
+    if (!(initObj.headers instanceof Headers)) {
+      this[rawHeadersSym] = initObj.headers;
+    } else {
+      this[headersSym] = initObj.headers;
+    }
+    if (body instanceof ReadableStream || body instanceof TransformStream || body instanceof FormData) {
+      this[bodySym] = body;
+    } else if (typeof body === 'string') {
+      this[_bodyStringSym] = body;
+    } else if (isBufferish(body)) {
+      this[bodySym] = new StringReadable(body);
+    }
+  }
+
+  get headers() {
+    if (!this[headersSym]) {
+      this[headersSym] = new Headers(this[rawHeadersSym]);
+    }
+    return this[headersSym];
+  }
+
+  get body() {
+    return this[bodySym];
+  }
+
+  get _bodyString() {
+    return this[_bodyStringSym];
+  }
+
   async arrayBuffer() {
     let bufs = [];
     const lengths = [];
@@ -45,11 +88,9 @@ export default class BodyMixin {
   }
 
   static mixin(klass) {
-    for (const key of Reflect.ownKeys(BodyMixin.prototype)) {
-      if (key === 'constructor') {
-        continue;
-      }
-      klass.prototype[key] = BodyMixin.prototype[key];
+    const descs = Object.getOwnPropertyDescriptors(BodyMixin.prototype);
+    for (const key in descs) {
+      Reflect.defineProperty(klass.prototype, key, descs[key]);
     }
   }
 }
