@@ -7,6 +7,9 @@ const rawHeadersSym = getPrivate('rawHeaders');
 const headersSym = getPrivate('headers');
 const bodySym = getPrivate('body');
 const _bodyStringSym = getPrivate('_bodyString');
+const chunksSym = getPrivate('chunks');
+const writeChunkSym = getPrivate('writeChunk');
+const writerSym = getPrivate('writer');
 
 export default class BodyMixin {
   // #rawHeaders; // not yet instantiated
@@ -20,7 +23,10 @@ export default class BodyMixin {
     } else {
       this[headersSym] = initObj.headers;
     }
-    if (body instanceof ReadableStream || body instanceof TransformStream || body instanceof FormData) {
+
+    if (body === writeChunkSym) {
+      this[chunksSym] = [];
+    } else if (body instanceof ReadableStream || body instanceof TransformStream || body instanceof FormData) {
       this[bodySym] = body;
     } else if (typeof body === 'string') {
       this[_bodyStringSym] = body;
@@ -37,7 +43,42 @@ export default class BodyMixin {
   }
 
   get body() {
+    if (!this[bodySym] && this[chunksSym]) {
+      let writer;
+      const stream = new ReadableStream({
+        start(controller) {
+          writer = controller;
+        }
+      });
+      this[writerSym] = writer;
+      for (const chunk of this[chunksSym]) {
+        if (typeof chunk === 'undefined') {
+          writer.close();
+        } else {
+          writer.enqueue(chunk);
+        }
+      }
+      delete this[chunksSym];
+      this[bodySym] = stream;
+    }
     return this[bodySym];
+  }
+
+  static writeChunk(chunk) {
+    if (this[chunksSym]) {
+      this[chunksSym].push(chunk);
+    } else {
+      const writer = this[writerSym];
+      if (typeof chunk === 'undefined') {
+        writer.close();
+      } else {
+        writer.enqueue(chunk);
+      }
+    }
+  }
+
+  static get writeChunkSym() {
+    return writeChunkSym;
   }
 
   get _bodyString() {
@@ -89,8 +130,11 @@ export default class BodyMixin {
 
   static mixin(klass) {
     const descs = Object.getOwnPropertyDescriptors(BodyMixin.prototype);
-    for (const key in descs) {
-      Reflect.defineProperty(klass.prototype, key, descs[key]);
+    for (let [key, desc] of Object.entries(descs)) {
+      if (key === 'constructor') {
+        continue;
+      }
+      Object.defineProperty(klass.prototype, key, desc);
     }
   }
 }

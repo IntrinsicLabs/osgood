@@ -3,6 +3,10 @@ import { isBufferish } from 'internal:common.js';
 import Headers from 'internal:headers.js';
 import Response from 'internal:response.js';
 import Request from 'internal:request.js';
+import BodyMixin from 'internal:body_mixin.js';
+
+const writeChunk = BodyMixin.writeChunk;
+const writeChunkSym = BodyMixin.writeChunkSym;
 
 const {
   sendError,
@@ -60,22 +64,17 @@ function shouldSerializeIntoPOJO(obj) {
 }
 
 function incomingReqHeadHandler(reqId, fn, method, url, headers) {
-  let writer;
+  const request = new Request(url, {
+    method,
+    headers,
+    body: writeChunkSym
+  });
   (async () => {
     try {
       if (typeof fn !== 'function') {
         throw new TypeError('Worker did not provide a valid handler');
       }
-      const body = new ReadableStream({
-        start(controller) {
-          writer = controller;
-        }
-      });
-      const request = new Request(url, {
-        method,
-        headers,
-        body
-      });
+
       await getResponse(reqId, fn, url, request);
     } catch (e) {
       console.error(e.stack);
@@ -83,11 +82,7 @@ function incomingReqHeadHandler(reqId, fn, method, url, headers) {
     }
   })();
   return async function handleIncomingReqBody(body) {
-    if (typeof body === 'undefined') {
-      await writer.close();
-    } else {
-      await writer.enqueue(body);
-    }
+    writeChunk.call(request, body);
   };
 }
 setIncomingReqHeadHandler(incomingReqHeadHandler);
