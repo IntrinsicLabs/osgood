@@ -10,6 +10,6 @@ following:
 Then you can make requests to the server and receive responses:
 
 ```sh
-curl http://localhost:3000/hello
-curl http://localhost:3000/gh-merge/IntrinsicLabs
+curl http://localhost:8080/hello
+curl http://localhost:8080/gh-merge/IntrinsicLabs
 ```
