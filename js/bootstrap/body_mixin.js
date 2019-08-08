@@ -8,10 +8,10 @@ const headersSym = getPrivate('headers');
 const bodySym = getPrivate('body');
 const _bodyStringSym = getPrivate('_bodyString');
 const chunksSym = getPrivate('chunks');
-const writeChunkSym = getPrivate('writeChunk');
+export const writeChunkSym = getPrivate('writeChunk');
 const writerSym = getPrivate('writer');
 
-export default class BodyMixin {
+export class BodyMixin {
   // #rawHeaders; // not yet instantiated
   // #headers; // instantiated
   // #body;
@@ -62,23 +62,6 @@ export default class BodyMixin {
       this[bodySym] = stream;
     }
     return this[bodySym];
-  }
-
-  static writeChunk(chunk) {
-    if (this[chunksSym]) {
-      this[chunksSym].push(chunk);
-    } else {
-      const writer = this[writerSym];
-      if (typeof chunk === 'undefined') {
-        writer.close();
-      } else {
-        writer.enqueue(chunk);
-      }
-    }
-  }
-
-  static get writeChunkSym() {
-    return writeChunkSym;
   }
 
   get _bodyString() {
@@ -135,6 +118,20 @@ export default class BodyMixin {
         continue;
       }
       Object.defineProperty(klass.prototype, key, desc);
+    }
+  }
+}
+
+
+export function writeChunk(chunk) {
+  if (this[chunksSym]) {
+    this[chunksSym].push(chunk);
+  } else {
+    const writer = this[writerSym];
+    if (typeof chunk === 'undefined') {
+      writer.close();
+    } else {
+      writer.enqueue(chunk);
     }
   }
 }

@@ -1,4 +1,4 @@
-import BodyMixin from 'internal:body_mixin.js';
+import { BodyMixin } from 'internal:body_mixin.js';
 
 const { getPrivate } = _bindings;
 

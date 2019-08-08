@@ -3,10 +3,7 @@ import { isBufferish } from 'internal:common.js';
 import Headers from 'internal:headers.js';
 import Response from 'internal:response.js';
 import Request from 'internal:request.js';
-import BodyMixin from 'internal:body_mixin.js';
-
-const writeChunk = BodyMixin.writeChunk;
-const writeChunkSym = BodyMixin.writeChunkSym;
+import { BodyMixin, writeChunk, writeChunkSym } from 'internal:body_mixin.js';
 
 const {
   sendError,
