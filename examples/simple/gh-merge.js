@@ -1,5 +1,7 @@
 const MAX_LIST = 3;
 
+console.log('curl http://localhost:8080/gh-merge/{USERNAME}');
+
 export default async function main(request, context) {
   const username = context.params.username;
 
