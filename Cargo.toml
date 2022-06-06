@@ -24,7 +24,7 @@ log = "0.4.6"
 path-clean = "0.1.0"
 phf = "0.7.24"
 pretty_env_logger = "0.3.0"
-tokio = "0.1.18"
+tokio = "1.8.4"
 tokio-threadpool = "0.1.15"
 url = "1.7.2"
 osgood-v8 = { path = "osgood-v8" }
