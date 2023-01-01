@@ -11,8 +11,8 @@
   "author": "Intrinsic <hello@intrinsic.com>",
   "license": "UNLICENSED",
   "devDependencies": {
-    "webpack": "^4.29.6",
-    "webpack-cli": "^3.2.3",
+    "webpack": "^5.75.0",
+    "webpack-cli": "^5.0.1",
     "whatwg-url": "^7.0.0"
   },
   "dependencies": {
